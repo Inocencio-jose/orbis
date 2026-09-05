@@ -1,0 +1,1159 @@
+﻿<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Orbis Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>tailwind.config={theme:{extend:{colors:{brand:{50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81',950:'#1e1b4b'}}}}}</script>
+<style>
+*{box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#f0f1ff}
+.sl{transition:all .18s;border-left:3px solid transparent}
+.sl:hover{background:rgba(99,102,241,.13);color:#a5b4fc;border-left-color:#f97316}
+.sl.active{background:rgba(99,102,241,.2);color:#fff;border-left-color:#f97316;font-weight:600}
+.card{background:#fff;border-radius:18px;box-shadow:0 2px 20px rgba(99,102,241,.07)}
+.ch{transition:box-shadow .2s,transform .2s}
+.ch:hover{box-shadow:0 8px 32px rgba(99,102,241,.15);transform:translateY(-2px)}
+.dot{width:9px;height:9px;border-radius:50%;background:#f97316;display:inline-block;flex-shrink:0}
+.dg{background:#22c55e!important}.dr{background:#ef4444!important}.db{background:#6366f1!important}
+.pulse{animation:pu 2s infinite}
+@keyframes pu{0%,100%{opacity:1}50%{opacity:.4}}
+.fi{animation:fi .25s ease}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.mbg{background:rgba(30,27,75,.55);backdrop-filter:blur(6px)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#c7d2fe;border-radius:4px}
+.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600}
+.bw{background:#fef3c7;color:#d97706}.bb{background:#fee2e2;color:#dc2626}
+.bk{background:#ede9fe;color:#7c3aed}.ba{background:#dbeafe;color:#2563eb}
+.bo{background:#dcfce7;color:#16a34a}.bi{background:#e0e7ff;color:#4338ca}
+.br{background:#fff7ed;color:#ea580c}.bm{background:#fdf4ff;color:#9333ea}
+.sc{position:relative;overflow:hidden}
+.sc::after{content:'';position:absolute;right:-20px;top:-20px;width:80px;height:80px;border-radius:50%;opacity:.07}
+.s1::after{background:#6366f1}.s2::after{background:#f97316}.s3::after{background:#ef4444}
+.s4::after{background:#22c55e}.s5::after{background:#8b5cf6}.s6::after{background:#06b6d4}
+.tg{position:relative;display:inline-block;width:42px;height:24px}
+.tg input{opacity:0;width:0;height:0}
+.sldr{position:absolute;cursor:pointer;inset:0;background:#c7d2fe;border-radius:24px;transition:.3s}
+.sldr:before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+input:checked+.sldr{background:#6366f1}
+input:checked+.sldr:before{transform:translateX(18px)}
+.ta{background:#6366f1;color:#fff}.ti{background:#f0f1ff;color:#6366f1}
+.ti:hover{background:#e0e7ff}
+input,textarea,select{outline:none}
+.empty{padding:40px;text-align:center;color:#a5b4fc;font-size:14px}
+</style>
+</head>
+<body class="flex h-screen overflow-hidden">
+<aside class="w-64 bg-brand-950 flex flex-col h-full flex-shrink-0">
+  <div class="p-5 border-b border-brand-800">
+    <div class="flex items-center gap-3">
+      <img src="logo.png" alt="Orbis" class="w-10 h-10 rounded-xl object-cover bg-white p-0.5"/>
+      <div><div class="text-white font-bold text-base">Orbis</div><div class="text-brand-400 text-xs">Orion Technologies</div></div>
+      <span class="ml-auto dot pulse"></span>
+    </div>
+  </div>
+  <nav class="flex-1 p-3 space-y-0.5 overflow-y-auto text-sm">
+    <div class="text-brand-500 text-xs font-bold uppercase tracking-widest px-3 py-2">Geral</div>
+    <a onclick="nav('dashboard')" id="n-dashboard" class="sl active flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-200 cursor-pointer">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+      Dashboard
+    </a>
+    <a onclick="nav('grupos')" id="n-grupos" class="sl flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-200 cursor-pointer">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Grupos
+    </a>
+    <div class="text-brand-500 text-xs font-bold uppercase tracking-widest px-3 py-2 mt-2">ModeraÃ§Ã£o</div>
+    <a onclick="nav('warnings')" id="n-warnings" class="sl flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-200 cursor-pointer">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      Avisos <span id="bw" class="ml-auto bg-orange-500 text-white text-xs rounded-full px-2 py-0.5 hidden"></span>
+    </a>
+    <a onclick="nav('banidos')" id="n-banidos" class="sl flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-200 cursor-pointer">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+      Banidos
+    </a>
+    <a onclick="nav('denuncias')" id="n-denuncias" class="sl flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-200 cursor-pointer">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>
+      DenÃºncias <span id="bd" class="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5 hidden"></span>
+    </a>
+    <a onclick="nav('logs')" id="n-logs" class="sl flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-200 cursor-pointer">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Logs
+    </a>
+    <div class="text-brand-500 text-xs font-bold uppercase tracking-widest px-3 py-2 mt-2">AnÃ¡lise</div>
+    <a onclick="nav('analytics')" id="n-analytics" class="sl flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-200 cursor-pointer">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      Analytics
+    </a>
+    <a onclick="nav('membros')" id="n-membros" class="sl flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-200 cursor-pointer">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      Membros
+    </a>
+    <div class="text-brand-500 text-xs font-bold uppercase tracking-widest px-3 py-2 mt-2">IA</div>
+    <a onclick="nav('memoria')" id="n-memoria" class="sl flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-200 cursor-pointer">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+      MemÃ³ria IA
+    </a>
+    <a onclick="nav('conexao')" id="n-conexao" class="sl flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-200 cursor-pointer">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+      ConexÃ£o
+    </a>
+    <a onclick="nav('broadcast')" id="n-broadcast" class="sl flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-200 cursor-pointer">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+      Broadcast
+    </a>
+  </nav>
+  <div class="p-4 border-t border-brand-800 space-y-1">
+    <div class="flex items-center gap-2"><span class="dot pulse"></span><span class="text-brand-300 text-xs font-medium">Bot activo</span><span class="ml-auto text-brand-500 text-xs" id="uptime">â€”</span></div>
+    <div class="text-brand-600 text-xs" id="last-upd">â€”</div>
+  </div>
+</aside>
+<main class="flex-1 flex flex-col overflow-hidden">
+<header class="bg-white border-b border-brand-100 px-6 py-3.5 flex items-center justify-between flex-shrink-0 shadow-sm">
+  <div><h1 class="text-brand-900 font-bold text-lg" id="ptitle">Dashboard</h1><p class="text-brand-400 text-xs" id="psub">VisÃ£o geral do sistema</p></div>
+  <div class="flex items-center gap-2">
+    <select id="gfilter" onchange="applyGFilter()" class="border border-brand-100 rounded-xl px-3 py-1.5 text-sm text-brand-700 bg-brand-50 hidden"></select>
+    <button onclick="refreshAll()" class="flex items-center gap-2 bg-brand-50 hover:bg-brand-100 text-brand-600 text-sm px-4 py-2 rounded-xl transition font-medium">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Actualizar
+    </button>
+    <button onclick="nav('broadcast')" class="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm px-4 py-2 rounded-xl transition font-medium">ðŸ“¤ Broadcast</button>
+  </div>
+</header>
+<div class="flex-1 overflow-y-auto p-6 space-y-5">
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="fi space-y-5">
+  <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div class="card sc s1 p-5 ch"><div class="flex items-center justify-between mb-2"><span class="text-brand-400 text-xs font-semibold uppercase tracking-wide">Grupos</span><span class="dot"></span></div><div class="text-3xl font-black text-brand-900" id="sg">â€”</div><div class="text-brand-400 text-xs mt-1">registados</div></div>
+    <div class="card sc s2 p-5 ch"><div class="flex items-center justify-between mb-2"><span class="text-brand-400 text-xs font-semibold uppercase tracking-wide">Avisos</span><span class="dot"></span></div><div class="text-3xl font-black text-brand-900" id="sw">â€”</div><div class="text-brand-400 text-xs mt-1">emitidos</div></div>
+    <div class="card sc s3 p-5 ch"><div class="flex items-center justify-between mb-2"><span class="text-brand-400 text-xs font-semibold uppercase tracking-wide">Banidos</span><span class="dot dr"></span></div><div class="text-3xl font-black text-brand-900" id="sb">â€”</div><div class="text-brand-400 text-xs mt-1">utilizadores</div></div>
+    <div class="card sc s4 p-5 ch"><div class="flex items-center justify-between mb-2"><span class="text-brand-400 text-xs font-semibold uppercase tracking-wide">DenÃºncias</span><span class="dot dr"></span></div><div class="text-3xl font-black text-brand-900" id="sd">â€”</div><div class="text-brand-400 text-xs mt-1">registadas</div></div>
+    <div class="card sc s5 p-5 ch"><div class="flex items-center justify-between mb-2"><span class="text-brand-400 text-xs font-semibold uppercase tracking-wide">Logs</span><span class="dot db"></span></div><div class="text-3xl font-black text-brand-900" id="sl2">â€”</div><div class="text-brand-400 text-xs mt-1">acÃ§Ãµes</div></div>
+    <div class="card sc s6 p-5 ch"><div class="flex items-center justify-between mb-2"><span class="text-brand-400 text-xs font-semibold uppercase tracking-wide">MemÃ³ria IA</span><span class="dot dg"></span></div><div class="text-3xl font-black text-brand-900" id="sm">â€”</div><div class="text-brand-400 text-xs mt-1">entradas</div></div>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div class="card p-5 lg:col-span-2">
+      <div class="flex items-center justify-between mb-4"><h3 class="text-brand-900 font-bold flex items-center gap-2"><span class="dot"></span>Avisos ao longo do tempo</h3>
+      <select id="crange" onchange="buildTimeline()" class="text-xs border border-brand-100 rounded-lg px-2 py-1 text-brand-600 bg-brand-50"><option value="7">7 dias</option><option value="14" selected>14 dias</option><option value="30">30 dias</option></select></div>
+      <canvas id="ctimeline" height="130"></canvas>
+    </div>
+    <div class="card p-5"><h3 class="text-brand-900 font-bold mb-4 flex items-center gap-2"><span class="dot"></span>DistribuiÃ§Ã£o</h3><canvas id="cdonut" height="180"></canvas></div>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="card p-5"><h3 class="text-brand-900 font-bold mb-3 flex items-center gap-2"><span class="dot dr"></span>DenÃºncias recentes</h3><div id="rden" class="space-y-2"></div></div>
+    <div class="card p-5"><h3 class="text-brand-900 font-bold mb-3 flex items-center gap-2"><span class="dot dr"></span>Ãšltimos banidos</h3><div id="rban" class="space-y-2"></div></div>
+  </div>
+  <div class="card p-5"><h3 class="text-brand-900 font-bold mb-3 flex items-center gap-2"><span class="dot db"></span>Actividade recente</h3><div id="rlogs" class="space-y-1.5"></div></div>
+</div>
+
+<!-- GRUPOS -->
+<div id="page-grupos" class="fi hidden space-y-4">
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <input id="sg-search" oninput="renderGrupos()" placeholder="Pesquisar grupo..." class="border border-brand-100 rounded-xl px-4 py-2 text-sm text-brand-700 bg-white w-72"/>
+    <span class="text-brand-400 text-sm" id="gc"></span>
+  </div>
+  <div id="ggrid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+</div>
+
+<!-- WARNINGS -->
+<div id="page-warnings" class="fi hidden">
+  <div class="card overflow-hidden">
+    <div class="p-5 border-b border-brand-50 flex flex-wrap items-center gap-3">
+      <h3 class="text-brand-900 font-bold">Avisos</h3>
+      <input id="fw" oninput="filterTable('wtb','fw')" placeholder="Filtrar..." class="border border-brand-100 rounded-xl px-3 py-1.5 text-sm text-brand-700 w-48"/>
+      <select id="fw-group" onchange="loadWarn()" class="border border-brand-100 rounded-xl px-3 py-1.5 text-sm text-brand-700 bg-white"></select>
+      <button onclick="exportCSV('wtb','avisos')" class="ml-auto text-xs bg-brand-50 hover:bg-brand-100 text-brand-600 px-3 py-1.5 rounded-lg transition">â¬‡ CSV</button>
+      <button onclick="clearWarn()" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition">ðŸ—‘ Limpar todos</button>
+    </div>
+    <div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead class="bg-brand-50"><tr>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Membro</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Grupo</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Motivo</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Data</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">AÃ§Ãµes</th>
+      </tr></thead>
+      <tbody id="wtb" class="divide-y divide-brand-50"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- BANIDOS -->
+<div id="page-banidos" class="fi hidden">
+  <div class="card overflow-hidden">
+    <div class="p-5 border-b border-brand-50 flex flex-wrap items-center gap-3">
+      <h3 class="text-brand-900 font-bold">Banidos</h3>
+      <input id="fb" oninput="filterTable('btb','fb')" placeholder="Filtrar..." class="border border-brand-100 rounded-xl px-3 py-1.5 text-sm text-brand-700 w-48"/>
+      <select id="fb-group" onchange="loadBan()" class="border border-brand-100 rounded-xl px-3 py-1.5 text-sm text-brand-700 bg-white"></select>
+      <button onclick="exportCSV('btb','banidos')" class="ml-auto text-xs bg-brand-50 hover:bg-brand-100 text-brand-600 px-3 py-1.5 rounded-lg transition">â¬‡ CSV</button>
+    </div>
+    <div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead class="bg-brand-50"><tr>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Membro</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Grupo</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Motivo</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Banido por</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Data</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">AÃ§Ãµes</th>
+      </tr></thead>
+      <tbody id="btb" class="divide-y divide-brand-50"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- DENÃšNCIAS -->
+<div id="page-denuncias" class="fi hidden">
+  <div class="card overflow-hidden">
+    <div class="p-5 border-b border-brand-50 flex flex-wrap items-center gap-3">
+      <h3 class="text-brand-900 font-bold">DenÃºncias</h3>
+      <input id="fd" oninput="filterTable('dtb','fd')" placeholder="Filtrar..." class="border border-brand-100 rounded-xl px-3 py-1.5 text-sm text-brand-700 w-48"/>
+      <select id="fd-group" onchange="loadDen()" class="border border-brand-100 rounded-xl px-3 py-1.5 text-sm text-brand-700 bg-white"></select>
+      <div class="ml-auto flex gap-2">
+        <button onclick="exportCSV('dtb','denuncias')" class="text-xs bg-brand-50 hover:bg-brand-100 text-brand-600 px-3 py-1.5 rounded-lg transition">â¬‡ CSV</button>
+        <button onclick="clearDen()" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition">ðŸ—‘ Limpar</button>
+      </div>
+    </div>
+    <div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead class="bg-brand-50"><tr>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Denunciado</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Por</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Grupo</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Mensagem</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Data</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">AÃ§Ãµes</th>
+      </tr></thead>
+      <tbody id="dtb" class="divide-y divide-brand-50"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- LOGS -->
+<div id="page-logs" class="fi hidden">
+  <div class="card overflow-hidden">
+    <div class="p-5 border-b border-brand-50 flex flex-wrap items-center gap-3">
+      <h3 class="text-brand-900 font-bold">Logs</h3>
+      <input id="fl" oninput="filterTable('ltb','fl')" placeholder="Filtrar..." class="border border-brand-100 rounded-xl px-3 py-1.5 text-sm text-brand-700 w-48"/>
+      <select id="fl-action" onchange="loadLogs()" class="border border-brand-100 rounded-xl px-3 py-1.5 text-sm text-brand-700 bg-white">
+        <option value="">Todas as acÃ§Ãµes</option>
+        <option value="warn">warn</option>
+        <option value="ban">ban</option>
+        <option value="kick">kick</option>
+        <option value="automod">automod</option>
+        <option value="mute">mute</option>
+      </select>
+      <button onclick="exportCSV('ltb','logs')" class="ml-auto text-xs bg-brand-50 hover:bg-brand-100 text-brand-600 px-3 py-1.5 rounded-lg transition">â¬‡ CSV</button>
+    </div>
+    <div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead class="bg-brand-50"><tr>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Tipo</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Membro</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Grupo</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Detalhe</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Data</th>
+      </tr></thead>
+      <tbody id="ltb" class="divide-y divide-brand-50"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ANALYTICS -->
+<div id="page-analytics" class="fi hidden space-y-4">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="card p-5"><h3 class="text-brand-900 font-bold mb-4 flex items-center gap-2"><span class="dot"></span>Avisos por grupo</h3><canvas id="cwg" height="220"></canvas></div>
+    <div class="card p-5"><h3 class="text-brand-900 font-bold mb-4 flex items-center gap-2"><span class="dot dr"></span>Banidos por grupo</h3><canvas id="cbg" height="220"></canvas></div>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="card p-5"><h3 class="text-brand-900 font-bold mb-4 flex items-center gap-2"><span class="dot dg"></span>Top infractores</h3><div id="topinf" class="space-y-2"></div></div>
+    <div class="card p-5"><h3 class="text-brand-900 font-bold mb-4 flex items-center gap-2"><span class="dot db"></span>Motivos mais comuns</h3><canvas id="crea" height="220"></canvas></div>
+  </div>
+  <div class="card p-5"><h3 class="text-brand-900 font-bold mb-4 flex items-center gap-2"><span class="dot"></span>Actividade por hora do dia</h3><canvas id="chrs" height="100"></canvas></div>
+</div>
+
+<!-- MEMBROS -->
+<div id="page-membros" class="fi hidden space-y-4">
+  <div class="flex items-center gap-3 flex-wrap">
+    <select id="gmsel" onchange="loadMembros()" class="border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700 bg-white"></select>
+    <input id="fm" oninput="filterTable('mtb','fm')" placeholder="Filtrar membro..." class="border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700 bg-white w-56"/>
+    <span class="text-brand-400 text-xs" id="mc2"></span>
+  </div>
+  <div class="card p-3 bg-brand-50 border border-brand-100 text-brand-500 text-xs rounded-xl">â„¹ï¸ Mostra membros com actividade registada (avisos, denÃºncias ou bans).</div>
+  <div class="card overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm">
+    <thead class="bg-brand-50"><tr>
+      <th class="text-left px-5 py-3 text-brand-500 font-semibold">Membro</th>
+      <th class="text-left px-5 py-3 text-brand-500 font-semibold">Estado</th>
+      <th class="text-left px-5 py-3 text-brand-500 font-semibold">Avisos</th>
+      <th class="text-left px-5 py-3 text-brand-500 font-semibold">DenÃºncias</th>
+      <th class="text-left px-5 py-3 text-brand-500 font-semibold">AÃ§Ãµes</th>
+    </tr></thead>
+    <tbody id="mtb" class="divide-y divide-brand-50"></tbody>
+  </table></div></div>
+</div>
+
+<!-- MEMÃ“RIA IA -->
+<div id="page-memoria" class="fi hidden">
+  <div class="card overflow-hidden">
+    <div class="p-5 border-b border-brand-50 flex flex-wrap items-center gap-3">
+      <h3 class="text-brand-900 font-bold">MemÃ³ria IA</h3>
+      <input id="fmem" oninput="filterTable('memtb','fmem')" placeholder="Filtrar..." class="border border-brand-100 rounded-xl px-3 py-1.5 text-sm text-brand-700 w-48"/>
+      <select id="fmem-ctx" onchange="loadMem()" class="border border-brand-100 rounded-xl px-3 py-1.5 text-sm text-brand-700 bg-white"></select>
+      <button onclick="clearMem()" class="ml-auto text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition">ðŸ—‘ Limpar tudo</button>
+    </div>
+    <div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead class="bg-brand-50"><tr>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Contexto</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Role</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">ConteÃºdo</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">Data</th>
+        <th class="text-left px-5 py-3 text-brand-500 font-semibold">AÃ§Ãµes</th>
+      </tr></thead>
+      <tbody id="memtb" class="divide-y divide-brand-50"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- CONEXÃƒO -->
+<div id="page-conexao" class="fi hidden space-y-4">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <!-- Estado -->
+    <div class="card p-6 space-y-4">
+      <h3 class="text-brand-900 font-bold flex items-center gap-2"><span class="dot pulse" id="cdot"></span>Estado da ConexÃ£o</h3>
+      <div class="flex items-center gap-3 bg-brand-50 rounded-xl p-4">
+        <div id="cstatus-icon" class="text-3xl">â³</div>
+        <div>
+          <div class="text-brand-900 font-bold" id="cstatus-text">A verificar...</div>
+          <div class="text-brand-400 text-xs" id="cstatus-phone"></div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div class="bg-brand-50 rounded-xl p-3"><div class="text-brand-400 text-xs mb-1">Uptime</div><div class="text-brand-800 font-bold" id="cstatus-uptime">â€”</div></div>
+        <div class="bg-brand-50 rounded-xl p-3"><div class="text-brand-400 text-xs mb-1">Porta API</div><div class="text-brand-800 font-bold">3001</div></div>
+      </div>
+      <button onclick="checkStatus()" class="w-full bg-brand-50 hover:bg-brand-100 text-brand-600 text-sm py-2.5 rounded-xl font-medium transition">ðŸ”„ Verificar estado</button>
+    </div>
+    <!-- QR Code -->
+    <div class="card p-6 space-y-4">
+      <h3 class="text-brand-900 font-bold flex items-center gap-2"><span class="dot db"></span>QR Code</h3>
+      <div id="qr-area" class="flex flex-col items-center justify-center bg-brand-50 rounded-xl p-6 min-h-48">
+        <div class="text-brand-300 text-sm" id="qr-msg">A carregar...</div>
+      </div>
+      <button onclick="loadQR()" class="w-full bg-brand-600 hover:bg-brand-700 text-white text-sm py-2.5 rounded-xl font-medium transition">ðŸ”ƒ Actualizar QR</button>
+      <p class="text-brand-400 text-xs text-center">Abre o WhatsApp â†’ Dispositivos ligados â†’ Ligar dispositivo</p>
+    </div>
+  </div>
+  <!-- CÃ³digo de emparelhamento -->
+  <div class="card p-6 space-y-4 max-w-md">
+    <h3 class="text-brand-900 font-bold flex items-center gap-2"><span class="dot dg"></span>CÃ³digo de emparelhamento</h3>
+    <p class="text-brand-500 text-sm">Alternativa ao QR. Introduz o nÃºmero de telefone do bot e recebe um cÃ³digo de 8 dÃ­gitos.</p>
+    <div class="flex gap-2">
+      <input id="pair-phone" placeholder="244912345678" class="flex-1 border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700"/>
+      <button onclick="requestPair()" class="bg-brand-600 hover:bg-brand-700 text-white text-sm px-5 py-2 rounded-xl font-medium transition">Obter cÃ³digo</button>
+    </div>
+    <div id="pair-result" class="hidden bg-brand-50 rounded-xl p-4 text-center">
+      <div class="text-brand-400 text-xs mb-1">CÃ³digo de emparelhamento</div>
+      <div class="text-brand-900 font-black text-3xl tracking-widest" id="pair-code"></div>
+      <div class="text-brand-400 text-xs mt-2">WhatsApp â†’ Dispositivos ligados â†’ Ligar com nÃºmero de telefone</div>
+    </div>
+  </div>
+</div>
+
+<!-- BROADCAST -->
+<div id="page-broadcast" class="fi hidden space-y-4">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="card p-6 space-y-4">
+      <h3 class="text-brand-900 font-bold flex items-center gap-2"><span class="dot"></span>Enviar mensagem</h3>
+      <div><label class="text-brand-700 text-sm font-medium block mb-1">Destino</label>
+      <select id="bcg" class="w-full border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700"></select></div>
+      <div><label class="text-brand-700 text-sm font-medium block mb-1">Tipo</label>
+      <div class="flex gap-2">
+        <button onclick="setBc('texto')" id="bct-texto" class="ta flex-1 py-2 rounded-xl text-sm font-medium transition">Texto</button>
+        <button onclick="setBc('anuncio')" id="bct-anuncio" class="ti flex-1 py-2 rounded-xl text-sm font-medium transition">AnÃºncio</button>
+        <button onclick="setBc('sondagem')" id="bct-sondagem" class="ti flex-1 py-2 rounded-xl text-sm font-medium transition">Sondagem</button>
+      </div></div>
+      <div id="bcf"><label class="text-brand-700 text-sm font-medium block mb-1">Mensagem</label>
+      <textarea id="bcmsg" rows="5" placeholder="Escreve a mensagem..." class="w-full border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700 resize-none"></textarea>
+      <div class="text-brand-400 text-xs mt-1 text-right"><span id="bclen">0</span> caracteres</div></div>
+      <div id="bcpf" class="hidden space-y-2">
+        <input id="bcpq" placeholder="Pergunta" class="w-full border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700"/>
+        <input id="bcp1" placeholder="OpÃ§Ã£o 1" class="w-full border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700"/>
+        <input id="bcp2" placeholder="OpÃ§Ã£o 2" class="w-full border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700"/>
+        <input id="bcp3" placeholder="OpÃ§Ã£o 3 (opcional)" class="w-full border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700"/>
+      </div>
+      <button onclick="sendBc()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 rounded-xl transition text-sm">ðŸ“¤ Enviar agora</button>
+    </div>
+    <div class="card p-6"><h3 class="text-brand-900 font-bold mb-4 flex items-center gap-2"><span class="dot dg"></span>HistÃ³rico desta sessÃ£o</h3><div id="bch" class="space-y-3 text-sm text-brand-400">Sem histÃ³rico.</div></div>
+  </div>
+</div>
+
+</div></main>
+
+<!-- MODAL GRUPO -->
+<div id="mg" class="fixed inset-0 mbg hidden z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg fi max-h-[90vh] overflow-y-auto">
+    <div class="p-6 border-b border-brand-50 flex items-center justify-between sticky top-0 bg-white z-10">
+      <h3 class="text-brand-900 font-bold text-lg" id="mgt">Configurar Grupo</h3>
+      <button onclick="cm('mg')" class="text-brand-300 hover:text-brand-600 text-xl">&times;</button>
+    </div>
+    <div class="p-6 space-y-4" id="mgb"></div>
+    <div class="p-6 border-t border-brand-50 flex justify-end gap-3 sticky bottom-0 bg-white">
+      <button onclick="cm('mg')" class="px-4 py-2 text-sm text-brand-500 hover:text-brand-700">Cancelar</button>
+      <button onclick="saveGrupo()" class="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm rounded-xl font-semibold">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRM -->
+<div id="mconf" class="fixed inset-0 mbg hidden z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm fi p-6 space-y-4">
+    <h3 class="text-brand-900 font-bold text-lg" id="mct">Confirmar</h3>
+    <p class="text-brand-500 text-sm" id="mcm"></p>
+    <div class="flex gap-3 justify-end">
+      <button onclick="cm('mconf')" class="px-4 py-2 text-sm text-brand-500 hover:text-brand-700">Cancelar</button>
+      <button id="mcb" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-xl font-semibold">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MEMBRO -->
+<div id="mm" class="fixed inset-0 mbg hidden z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fi max-h-[90vh] overflow-y-auto">
+    <div class="p-6 border-b border-brand-50 flex items-center justify-between sticky top-0 bg-white">
+      <h3 class="text-brand-900 font-bold text-lg" id="mmt">Membro</h3>
+      <button onclick="cm('mm')" class="text-brand-300 hover:text-brand-600 text-xl">&times;</button>
+    </div>
+    <div class="p-6 space-y-3" id="mmb"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden">
+  <div class="bg-brand-900 text-white px-5 py-3 rounded-2xl shadow-2xl text-sm flex items-center gap-3 fi">
+    <span id="ti">âœ…</span><span id="tm"></span>
+  </div>
+</div>
+
+<script>
+const SB = supabase.createClient(
+  'https://fnuigdmcswvrzstdkqec.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudWlnZG1jc3d2cnpzdGRrcWVjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODU5OTY5MCwiZXhwIjoyMTA0MTc1NjkwfQ.xwBiIT3veDldXsDcvm6vbENv8AB3Fmmw7DdRk7iH0sA'
+)
+
+const API = 'http://localhost:3001'
+
+let CP = 'dashboard', GID = null, grupos = [], charts = {}, bcType = 'texto', bcHist = [], st = Date.now()
+let contacts = {}
+
+async function loadContacts() {
+  const { data } = await SB.from('contacts').select('jid,name,phone')
+  contacts = {}
+  data?.forEach(c => { contacts[c.jid] = c })
+}
+
+function resolveUser(uid) {
+  if (!uid) return '\u2014'
+  const c = contacts[uid]
+  if (c) return c.name || (c.phone ? `+${c.phone}` : null) || uid.split('@')[0].split(':')[0]
+  const raw = uid.split('@')[0].split(':')[0]
+  const byPhone = Object.values(contacts).find(x => x.phone === raw)
+  if (byPhone) return byPhone.name || `+${byPhone.phone}`
+  if (/^\d{7,15}$/.test(raw)) return `+${raw}`
+  return raw.length > 10 ? '...' + raw.slice(-8) : raw
+}
+
+setInterval(() => {
+  const s = Math.floor((Date.now()-st)/1000), h = Math.floor(s/3600), m = Math.floor((s%3600)/60), ss = s%60
+  document.getElementById('uptime').textContent = `${h}h ${m}m ${ss}s`
+}, 1000)
+
+const fd = d => d ? new Date(d).toLocaleString('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'â€”'
+const sid = id => id ? (id.split('@')[0].slice(-12)) : 'â€”'
+const gname = gid => grupos.find(g => g.whatsapp_group_id === gid)?.name || sid(gid)
+
+function fmtUser(uid) { if (!uid) return "-"; return resolveUser(uid) }
+
+function badge(t, l) {
+  const m = {warn:'bw',ban:'bb',kick:'bk',automod:'ba',ok:'bo',info:'bi',report:'br',mute:'bm',assistant:'bo',user:'bi'}
+  return `<span class="badge ${m[t]||'bi'}">${l||t}</span>`
+}
+
+function toast(msg, ic='âœ…') {
+  document.getElementById('ti').textContent = ic
+  document.getElementById('tm').textContent = msg
+  const t = document.getElementById('toast')
+  t.classList.remove('hidden')
+  setTimeout(() => t.classList.add('hidden'), 3000)
+}
+
+function confirm2(title, msg, cb) {
+  document.getElementById('mct').textContent = title
+  document.getElementById('mcm').textContent = msg
+  document.getElementById('mcb').onclick = () => { cm('mconf'); cb() }
+  om('mconf')
+}
+
+function om(id) { document.getElementById(id).classList.remove('hidden') }
+function cm(id) { document.getElementById(id).classList.add('hidden') }
+
+function filterTable(tb, inp) {
+  const q = document.getElementById(inp).value.toLowerCase()
+  document.querySelectorAll(`#${tb} tr`).forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none'
+  })
+}
+
+function exportCSV(tb, name) {
+  const rows = [...document.querySelectorAll(`#${tb} tr`)]
+  const csv = rows.map(r => [...r.querySelectorAll('td')].map(td => `"${td.textContent.trim()}"`).join(',')).join('\n')
+  const a = document.createElement('a')
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv)
+  a.download = `${name}_${new Date().toISOString().slice(0,10)}.csv`
+  a.click()
+  toast('CSV exportado')
+}
+
+function fillGroupSelects(selIds) {
+  const opts = '<option value="">Todos os grupos</option>' + grupos.map(g => `<option value="${g.whatsapp_group_id}">${g.name||sid(g.whatsapp_group_id)}</option>`).join('')
+  selIds.forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = opts })
+}
+
+const PT = {
+  dashboard:['Dashboard','VisÃ£o geral do sistema'],
+  grupos:['Grupos','Todos os grupos registados'],
+  warnings:['Avisos','HistÃ³rico de advertÃªncias'],
+  banidos:['Banidos','Utilizadores banidos'],
+  denuncias:['DenÃºncias','DenÃºncias registadas'],
+  logs:['Logs','Registo de acÃ§Ãµes do bot'],
+  analytics:['Analytics','EstatÃ­sticas e grÃ¡ficos'],
+  membros:['Membros','GestÃ£o de membros por grupo'],
+  memoria:['MemÃ³ria IA','HistÃ³rico de conversas da IA'],
+  broadcast:['Broadcast','Enviar mensagens para grupos'],
+  conexao:['ConexÃ£o','Estado e ligaÃ§Ã£o do bot']
+}
+
+function nav(p) {
+  document.querySelectorAll('[id^="page-"]').forEach(e => e.classList.add('hidden'))
+  document.querySelectorAll('.sl').forEach(e => e.classList.remove('active'))
+  document.getElementById('page-'+p)?.classList.remove('hidden')
+  document.getElementById('n-'+p)?.classList.add('active')
+  CP = p
+  const [t,s] = PT[p] || [p,'']
+  document.getElementById('ptitle').textContent = t
+  document.getElementById('psub').textContent = s
+  const gf = document.getElementById('gfilter')
+  gf.classList.toggle('hidden', !['warnings','banidos','denuncias','logs'].includes(p))
+  loadP(p)
+}
+
+async function loadP(p) {
+  if (p==='dashboard') await loadDash()
+  else if (p==='grupos') await loadGrupos()
+  else if (p==='warnings') await loadWarn()
+  else if (p==='banidos') await loadBan()
+  else if (p==='denuncias') await loadDen()
+  else if (p==='logs') await loadLogs()
+  else if (p==='analytics') await loadAnalytics()
+  else if (p==='membros') await loadMembrosP()
+  else if (p==='memoria') await loadMem()
+  else if (p==='broadcast') await loadBc()
+  else if (p==='conexao') await loadConexao()
+  document.getElementById('last-upd').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('pt-PT')
+}
+
+function refreshAll() { loadP(CP) }
+function applyGFilter() { loadP(CP) }
+</script>
+
+<script>
+async function loadDash() {
+  const [g,w,b,d,l,m] = await Promise.all([
+    SB.from('groups').select('id',{count:'exact',head:true}),
+    SB.from('warnings').select('id',{count:'exact',head:true}),
+    SB.from('banned_users').select('id',{count:'exact',head:true}),
+    SB.from('reports').select('id',{count:'exact',head:true}),
+    SB.from('logs').select('id',{count:'exact',head:true}),
+    SB.from('ai_memory').select('id',{count:'exact',head:true})
+  ])
+  document.getElementById('sg').textContent = g.count||0
+  document.getElementById('sw').textContent = w.count||0
+  document.getElementById('sb').textContent = b.count||0
+  document.getElementById('sd').textContent = d.count||0
+  document.getElementById('sl2').textContent = l.count||0
+  document.getElementById('sm').textContent = m.count||0
+  const bwEl = document.getElementById('bw'), bdEl = document.getElementById('bd')
+  if (w.count>0) { bwEl.textContent=w.count; bwEl.classList.remove('hidden') } else bwEl.classList.add('hidden')
+  if (d.count>0) { bdEl.textContent=d.count; bdEl.classList.remove('hidden') } else bdEl.classList.add('hidden')
+
+  const {data:rd} = await SB.from('reports').select('*').order('created_at',{ascending:false}).limit(5)
+  document.getElementById('rden').innerHTML = rd?.length ? rd.map(r => `
+    <div class="flex items-start gap-3 py-2 border-b border-brand-50 last:border-0">
+      <span class="dot dr mt-1.5 flex-shrink-0"></span>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-brand-800 font-semibold text-sm">${fmtUser(r.reported_user)}</span>
+          <span class="text-brand-300 text-xs flex-shrink-0">${fd(r.created_at)}</span>
+        </div>
+        <div class="text-brand-500 text-xs truncate">${r.message_text||'sem texto'}</div>
+        <div class="text-brand-400 text-xs">por ${fmtUser(r.reported_by)}</div>
+      </div>
+    </div>`).join('') : '<div class="empty">Sem denÃºncias</div>'
+
+  const {data:rb} = await SB.from('banned_users').select('*').order('created_at',{ascending:false}).limit(5)
+  document.getElementById('rban').innerHTML = rb?.length ? rb.map(b => `
+    <div class="flex items-start gap-3 py-2 border-b border-brand-50 last:border-0">
+      <span class="dot dr mt-1.5 flex-shrink-0"></span>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-brand-800 font-semibold text-sm">${fmtUser(b.user_id)}</span>
+          <span class="text-brand-300 text-xs flex-shrink-0">${fd(b.created_at)}</span>
+        </div>
+        <div class="text-brand-500 text-xs">${b.reason||'â€”'}</div>
+        <div class="text-brand-400 text-xs">${gname(b.group_id)}</div>
+      </div>
+    </div>`).join('') : '<div class="empty">Sem banidos</div>'
+
+  const {data:rl} = await SB.from('logs').select('*').order('created_at',{ascending:false}).limit(10)
+  document.getElementById('rlogs').innerHTML = rl?.length ? rl.map(l => `
+    <div class="flex items-center gap-3 py-1.5 border-b border-brand-50 last:border-0 text-sm">
+      ${badge(l.action||'info', l.action||'log')}
+      <span class="text-brand-700 font-medium">${fmtUser(l.user_id)}</span>
+      <span class="text-brand-400 text-xs truncate flex-1">${l.detail||'â€”'}</span>
+      <span class="text-brand-300 text-xs flex-shrink-0">${fd(l.created_at)}</span>
+    </div>`).join('') : '<div class="empty">Sem logs</div>'
+
+  await buildTimeline()
+  await buildDonut()
+}
+
+async function buildTimeline() {
+  const days = parseInt(document.getElementById('crange')?.value||14)
+  const since = new Date(Date.now()-days*86400000).toISOString()
+  const {data} = await SB.from('warnings').select('created_at').gte('created_at',since).order('created_at')
+  const byDay = {}
+  for (let i=days-1; i>=0; i--) { const d=new Date(Date.now()-i*86400000).toLocaleDateString('pt-PT'); byDay[d]=0 }
+  data?.forEach(w => { const d=new Date(w.created_at).toLocaleDateString('pt-PT'); if(byDay[d]!==undefined) byDay[d]++ })
+  if (charts.tl) charts.tl.destroy()
+  charts.tl = new Chart(document.getElementById('ctimeline'), {
+    type:'line',
+    data:{labels:Object.keys(byDay),datasets:[{label:'Avisos',data:Object.values(byDay),borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.1)',tension:.4,fill:true,pointBackgroundColor:'#6366f1',pointRadius:3}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'}},x:{grid:{display:false},ticks:{maxTicksLimit:7}}}}
+  })
+}
+
+async function buildDonut() {
+  const [w,b,d] = await Promise.all([
+    SB.from('warnings').select('id',{count:'exact',head:true}),
+    SB.from('banned_users').select('id',{count:'exact',head:true}),
+    SB.from('reports').select('id',{count:'exact',head:true})
+  ])
+  if (charts.dn) charts.dn.destroy()
+  charts.dn = new Chart(document.getElementById('cdonut'), {
+    type:'doughnut',
+    data:{labels:['Avisos','Banidos','DenÃºncias'],datasets:[{data:[w.count||0,b.count||0,d.count||0],backgroundColor:['#6366f1','#ef4444','#f97316'],borderWidth:0,hoverOffset:6}]},
+    options:{responsive:true,cutout:'68%',plugins:{legend:{position:'bottom',labels:{padding:14,font:{size:12}}}}}
+  })
+}
+
+async function loadGrupos() {
+  const {data} = await SB.from('groups').select('*').order('created_at',{ascending:false})
+  grupos = data || []
+  fillGroupSelects(['gfilter','fw-group','fb-group','fd-group','gmsel'])
+  document.getElementById('bcg').innerHTML = '<option value="all">ðŸ“¢ Todos os grupos</option>' +
+    grupos.map(g => `<option value="${g.whatsapp_group_id}">${g.name||sid(g.whatsapp_group_id)}</option>`).join('')
+  document.getElementById('gc').textContent = `${grupos.length} grupo(s)`
+  renderGrupos()
+}
+
+function renderGrupos() {
+  const q = document.getElementById('sg-search')?.value.toLowerCase()||''
+  const f = grupos.filter(g => (g.name||'').toLowerCase().includes(q) || g.whatsapp_group_id.includes(q))
+  document.getElementById('ggrid').innerHTML = f.length ? f.map(g => `
+    <div class="card ch p-5 cursor-pointer" onclick="openGM('${g.whatsapp_group_id}','${(g.name||'Grupo').replace(/'/g,"\\'")}')">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <div class="text-brand-900 font-bold">${g.name||'Sem nome'}</div>
+          <div class="text-brand-400 text-xs mt-0.5 font-mono">${sid(g.whatsapp_group_id)}</div>
+        </div>
+        <span class="dot pulse"></span>
+      </div>
+      <div class="grid grid-cols-3 gap-2 text-xs mt-3">
+        <div class="bg-brand-50 rounded-xl p-2 text-center"><div class="font-bold ${g.anti_link_enabled?'text-green-600':'text-red-400'}">${g.anti_link_enabled?'ON':'OFF'}</div><div class="text-brand-400 mt-0.5">Anti-link</div></div>
+        <div class="bg-brand-50 rounded-xl p-2 text-center"><div class="font-bold ${g.anti_spam_enabled?'text-green-600':'text-red-400'}">${g.anti_spam_enabled?'ON':'OFF'}</div><div class="text-brand-400 mt-0.5">Anti-spam</div></div>
+        <div class="bg-brand-50 rounded-xl p-2 text-center"><div class="font-bold text-brand-700">${g.warnings_limit||3}</div><div class="text-brand-400 mt-0.5">Warn limit</div></div>
+      </div>
+      <div class="flex items-center justify-between mt-3">
+        <span class="text-brand-300 text-xs">${fd(g.created_at)}</span>
+        <span class="text-brand-500 text-xs font-medium">âš™ Configurar â†’</span>
+      </div>
+    </div>`).join('') : '<div class="empty col-span-3">Nenhum grupo encontrado</div>'
+}
+
+async function openGM(gid, name) {
+  GID = gid
+  document.getElementById('mgt').textContent = name
+  const {data:g} = await SB.from('groups').select('*').eq('whatsapp_group_id',gid).single()
+  document.getElementById('mgb').innerHTML = `
+    <div class="grid grid-cols-2 gap-3">
+      ${[['anti_link_enabled','Anti-link'],['anti_spam_enabled','Anti-spam'],['anti_flood_enabled','Anti-flood'],['welcome_enabled','Boas-vindas']].map(([k,l]) =>
+        `<label class="flex items-center justify-between bg-brand-50 rounded-xl p-3 cursor-pointer">
+          <span class="text-brand-700 text-sm font-medium">${l}</span>
+          <label class="tg"><input type="checkbox" id="cfg-${k}" ${g?.[k]?'checked':''}><span class="sldr"></span></label>
+        </label>`).join('')}
+    </div>
+    <div><label class="text-brand-700 text-sm font-medium block mb-1">Limite de avisos</label>
+    <input type="number" id="cfg-wl" value="${g?.warnings_limit||3}" min="1" max="20" class="w-full border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700"/></div>
+    <div><label class="text-brand-700 text-sm font-medium block mb-1">Regras do grupo</label>
+    <textarea id="cfg-rules" rows="4" class="w-full border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700 resize-none">${g?.rules||''}</textarea></div>
+    <div><label class="text-brand-700 text-sm font-medium block mb-1">Mensagem de boas-vindas</label>
+    <input type="text" id="cfg-wm" value="${g?.welcome_message||''}" placeholder="OlÃ¡ {nome}, bem-vindo ao {grupo}!" class="w-full border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700"/>
+    <p class="text-brand-400 text-xs mt-1">VariÃ¡veis: {nome} {grupo}</p></div>
+    <div><label class="text-brand-700 text-sm font-medium block mb-1">Grupo de notificaÃ§Ãµes (ID)</label>
+    <input type="text" id="cfg-ag" value="${g?.admin_group_id||''}" placeholder="120363427347409993@g.us" class="w-full border border-brand-100 rounded-xl px-3 py-2 text-sm text-brand-700 font-mono"/></div>`
+  om('mg')
+}
+
+async function saveGrupo() {
+  if (!GID) return
+  const u = {
+    anti_link_enabled: document.getElementById('cfg-anti_link_enabled').checked,
+    anti_spam_enabled: document.getElementById('cfg-anti_spam_enabled').checked,
+    anti_flood_enabled: document.getElementById('cfg-anti_flood_enabled').checked,
+    welcome_enabled: document.getElementById('cfg-welcome_enabled').checked,
+    warnings_limit: parseInt(document.getElementById('cfg-wl').value)||3,
+    rules: document.getElementById('cfg-rules').value,
+    welcome_message: document.getElementById('cfg-wm').value,
+    admin_group_id: document.getElementById('cfg-ag').value
+  }
+  const {error} = await SB.from('groups').update(u).eq('whatsapp_group_id',GID)
+  if (error) { toast('Erro: '+error.message,'âŒ'); return }
+  toast('ConfiguraÃ§Ãµes guardadas âœ…')
+  cm('mg')
+  loadGrupos()
+}
+</script>
+
+<script>
+async function loadWarn() {
+  let q = SB.from('warnings').select('*').order('created_at',{ascending:false}).limit(300)
+  const gf = document.getElementById('fw-group')?.value || document.getElementById('gfilter')?.value
+  if (gf) q = q.eq('group_id', gf)
+  const {data} = await q
+  document.getElementById('wtb').innerHTML = data?.length ? data.map(w => `
+    <tr class="hover:bg-brand-50/50 transition">
+      <td class="px-5 py-3 text-brand-800 font-semibold">${fmtUser(w.user_id)}</td>
+      <td class="px-5 py-3 text-brand-500 text-xs">${gname(w.group_id)}</td>
+      <td class="px-5 py-3 text-brand-600">${w.reason||'â€”'}</td>
+      <td class="px-5 py-3 text-brand-400 text-xs">${fd(w.created_at)}</td>
+      <td class="px-5 py-3"><button onclick="delWarn('${w.id}')" class="text-red-400 hover:text-red-600 text-xs font-medium">Remover</button></td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty">Sem avisos</td></tr>'
+}
+
+async function delWarn(id) {
+  await SB.from('warnings').delete().eq('id',id)
+  toast('Aviso removido')
+  loadWarn()
+}
+
+async function clearWarn() {
+  confirm2('Limpar todos os avisos','Esta acÃ§Ã£o Ã© irreversÃ­vel. Todos os avisos serÃ£o apagados.', async () => {
+    await SB.from('warnings').delete().neq('id','00000000-0000-0000-0000-000000000000')
+    toast('Avisos apagados')
+    loadWarn()
+  })
+}
+
+async function loadBan() {
+  let q = SB.from('banned_users').select('*').order('created_at',{ascending:false})
+  const gf = document.getElementById('fb-group')?.value || document.getElementById('gfilter')?.value
+  if (gf) q = q.eq('group_id', gf)
+  const {data} = await q
+  document.getElementById('btb').innerHTML = data?.length ? data.map(b => `
+    <tr class="hover:bg-brand-50/50 transition">
+      <td class="px-5 py-3 text-brand-800 font-semibold">${fmtUser(b.user_id)}</td>
+      <td class="px-5 py-3 text-brand-500 text-xs">${gname(b.group_id)}</td>
+      <td class="px-5 py-3 text-brand-600">${b.reason||'â€”'}</td>
+      <td class="px-5 py-3 text-brand-500 text-xs">${fmtUser(b.banned_by)}</td>
+      <td class="px-5 py-3 text-brand-400 text-xs">${fd(b.created_at)}</td>
+      <td class="px-5 py-3 flex gap-2">
+        <button onclick="unban('${b.id}')" class="text-green-500 hover:text-green-700 text-xs font-medium">Readmitir</button>
+        <button onclick="delBan('${b.id}')" class="text-red-400 hover:text-red-600 text-xs font-medium">Remover</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty">Sem banidos</td></tr>'
+}
+
+async function unban(id) {
+  // Buscar o registo para obter user_jid e group_id
+  const { data } = await SB.from('banned_users').select('user_jid,group_id').eq('id',id).single()
+  if (data?.user_jid && data?.group_id) {
+    try {
+      const r = await fetch(`${API}/api/unban`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ user_jid: data.user_jid, group_id: data.group_id })
+      })
+      const j = await r.json()
+      if (!r.ok) toast('Erro ao readmitir: ' + (j.error||'desconhecido'), 'âŒ')
+      else toast('Readmitido no grupo âœ…')
+    } catch {
+      toast('Bot offline â€” sÃ³ removido da lista', 'âš ï¸')
+    }
+  }
+  await SB.from('banned_users').delete().eq('id',id)
+  loadBan()
+}
+
+async function delBan(id) {
+  await SB.from('banned_users').delete().eq('id',id)
+  toast('Registo removido')
+  loadBan()
+}
+
+async function loadDen() {
+  let q = SB.from('reports').select('*').order('created_at',{ascending:false}).limit(300)
+  const gf = document.getElementById('fd-group')?.value || document.getElementById('gfilter')?.value
+  if (gf) q = q.eq('group_id', gf)
+  const {data} = await q
+  document.getElementById('dtb').innerHTML = data?.length ? data.map(r => `
+    <tr class="hover:bg-brand-50/50 transition">
+      <td class="px-5 py-3 text-brand-800 font-semibold">${fmtUser(r.reported_user)}</td>
+      <td class="px-5 py-3 text-brand-500">${fmtUser(r.reported_by)}</td>
+      <td class="px-5 py-3 text-brand-500 text-xs">${gname(r.group_id)}</td>
+      <td class="px-5 py-3 text-brand-600 max-w-xs truncate">${r.message_text||'â€”'}</td>
+      <td class="px-5 py-3 text-brand-400 text-xs">${fd(r.created_at)}</td>
+      <td class="px-5 py-3"><button onclick="delDen('${r.id}')" class="text-red-400 hover:text-red-600 text-xs font-medium">Remover</button></td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty">Sem denÃºncias</td></tr>'
+}
+
+async function delDen(id) {
+  await SB.from('reports').delete().eq('id',id)
+  toast('DenÃºncia removida')
+  loadDen()
+}
+
+async function clearDen() {
+  confirm2('Limpar todas as denÃºncias','Esta acÃ§Ã£o Ã© irreversÃ­vel.', async () => {
+    await SB.from('reports').delete().neq('id','00000000-0000-0000-0000-000000000000')
+    toast('DenÃºncias apagadas')
+    loadDen()
+  })
+}
+
+async function loadLogs() {
+  const action = document.getElementById('fl-action')?.value
+  let q = SB.from('logs').select('*').order('created_at',{ascending:false}).limit(300)
+  if (action) q = q.eq('action', action)
+  const {data} = await q
+  document.getElementById('ltb').innerHTML = data?.length ? data.map(l => `
+    <tr class="hover:bg-brand-50/50 transition">
+      <td class="px-5 py-3">${badge(l.action||'info', l.action||'log')}</td>
+      <td class="px-5 py-3 text-brand-800 font-semibold">${fmtUser(l.user_id)}</td>
+      <td class="px-5 py-3 text-brand-500 text-xs">${gname(l.group_id)}</td>
+      <td class="px-5 py-3 text-brand-600 max-w-xs truncate">${l.detail||'â€”'}</td>
+      <td class="px-5 py-3 text-brand-400 text-xs">${fd(l.created_at)}</td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty">Sem logs</td></tr>'
+}
+</script>
+
+<script>
+async function loadAnalytics() {
+  const [{data:warns},{data:bans}] = await Promise.all([
+    SB.from('warnings').select('group_id,user_id,reason,created_at'),
+    SB.from('banned_users').select('group_id,user_id')
+  ])
+
+  const wg = {}
+  warns?.forEach(w => { const k=gname(w.group_id); wg[k]=(wg[k]||0)+1 })
+  if (charts.wg) charts.wg.destroy()
+  charts.wg = new Chart(document.getElementById('cwg'), {
+    type:'bar',
+    data:{labels:Object.keys(wg),datasets:[{label:'Avisos',data:Object.values(wg),backgroundColor:'#6366f1',borderRadius:8}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'}},x:{grid:{display:false}}}}
+  })
+
+  const bg = {}
+  bans?.forEach(b => { const k=gname(b.group_id); bg[k]=(bg[k]||0)+1 })
+  if (charts.bg) charts.bg.destroy()
+  charts.bg = new Chart(document.getElementById('cbg'), {
+    type:'bar',
+    data:{labels:Object.keys(bg),datasets:[{label:'Banidos',data:Object.values(bg),backgroundColor:'#ef4444',borderRadius:8}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'}},x:{grid:{display:false}}}}
+  })
+
+  const ui = {}
+  warns?.forEach(w => { ui[w.user_id]=(ui[w.user_id]||0)+1 })
+  const top = Object.entries(ui).sort((a,b)=>b[1]-a[1]).slice(0,8)
+  document.getElementById('topinf').innerHTML = top.length ? top.map(([uid,cnt],i) =>
+    `<div class="flex items-center gap-3">
+      <span class="text-brand-400 text-xs w-5 text-right">${i+1}</span>
+      <div class="flex-1 bg-brand-50 rounded-full h-2 overflow-hidden"><div class="bg-brand-500 h-2 rounded-full" style="width:${Math.round(cnt/top[0][1]*100)}%"></div></div>
+      <span class="text-brand-700 text-xs w-32 truncate">${fmtUser(uid)}</span>
+      <span class="badge bw">${cnt}</span>
+    </div>`).join('') : '<div class="empty">Sem dados</div>'
+
+  const reasons = {}
+  warns?.forEach(w => { const r=(w.reason||'outro').slice(0,30); reasons[r]=(reasons[r]||0)+1 })
+  const topR = Object.entries(reasons).sort((a,b)=>b[1]-a[1]).slice(0,6)
+  if (charts.re) charts.re.destroy()
+  charts.re = new Chart(document.getElementById('crea'), {
+    type:'doughnut',
+    data:{labels:topR.map(r=>r[0]),datasets:[{data:topR.map(r=>r[1]),backgroundColor:['#6366f1','#f97316','#ef4444','#22c55e','#8b5cf6','#06b6d4'],borderWidth:0}]},
+    options:{responsive:true,cutout:'55%',plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:11}}}}}
+  })
+
+  const hours = Array(24).fill(0)
+  warns?.forEach(w => { const h=new Date(w.created_at).getHours(); hours[h]++ })
+  if (charts.hr) charts.hr.destroy()
+  charts.hr = new Chart(document.getElementById('chrs'), {
+    type:'bar',
+    data:{labels:Array.from({length:24},(_,i)=>i+'h'),datasets:[{label:'Avisos',data:hours,backgroundColor:hours.map(v=>v===Math.max(...hours)?'#f97316':'#c7d2fe'),borderRadius:4}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'}},x:{grid:{display:false}}}}
+  })
+}
+
+async function loadMembrosP() {
+  if (!grupos.length) await loadGrupos()
+  document.getElementById('gmsel').innerHTML = '<option value="">Selecciona um grupo</option>' +
+    grupos.map(g => `<option value="${g.whatsapp_group_id}">${g.name||sid(g.whatsapp_group_id)}</option>`).join('')
+}
+
+async function loadMembros() {
+  const gid = document.getElementById('gmsel').value
+  if (!gid) return
+  const [{data:warns},{data:bans},{data:reports}] = await Promise.all([
+    SB.from('warnings').select('user_id').eq('group_id',gid),
+    SB.from('banned_users').select('user_id').eq('group_id',gid),
+    SB.from('reports').select('reported_user').eq('group_id',gid)
+  ])
+  const wc = {}; warns?.forEach(w => { wc[w.user_id]=(wc[w.user_id]||0)+1 })
+  const rc = {}; reports?.forEach(r => { rc[r.reported_user]=(rc[r.reported_user]||0)+1 })
+  const bids = new Set(bans?.map(b=>b.user_id)||[])
+  const all = [...new Set([...Object.keys(wc),...Object.keys(rc),...bids])]
+  document.getElementById('mc2').textContent = `${all.length} membro(s) com actividade`
+  document.getElementById('mtb').innerHTML = all.length ? all.map(uid => `
+    <tr class="hover:bg-brand-50/50 transition">
+      <td class="px-5 py-3 text-brand-800 font-semibold">${fmtUser(uid)}</td>
+      <td class="px-5 py-3">${bids.has(uid)?badge('ban','banido'):badge('ok','activo')}</td>
+      <td class="px-5 py-3">${wc[uid]?`<span class="badge bw">${wc[uid]}</span>`:'<span class="text-brand-300 text-xs">0</span>'}</td>
+      <td class="px-5 py-3">${rc[uid]?`<span class="badge br">${rc[uid]}</span>`:'<span class="text-brand-300 text-xs">0</span>'}</td>
+      <td class="px-5 py-3 flex gap-2">
+        <button onclick="viewM('${uid}','${gid}')" class="text-brand-500 hover:text-brand-700 text-xs font-medium">Detalhes</button>
+        ${!bids.has(uid)?`<button onclick="warnM('${uid}','${gid}')" class="text-orange-500 hover:text-orange-700 text-xs font-medium">Warn</button>`:''}
+      </td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty">Sem dados para este grupo</td></tr>'
+}
+
+async function viewM(uid, gid) {
+  const [{data:warns},{data:bans},{data:reports}] = await Promise.all([
+    SB.from('warnings').select('*').eq('group_id',gid).eq('user_id',uid).order('created_at',{ascending:false}),
+    SB.from('banned_users').select('*').eq('group_id',gid).eq('user_id',uid),
+    SB.from('reports').select('*').eq('group_id',gid).eq('reported_user',uid).order('created_at',{ascending:false})
+  ])
+  document.getElementById('mmt').textContent = fmtUser(uid)
+  document.getElementById('mmb').innerHTML = `
+    <div class="grid grid-cols-3 gap-3 text-center">
+      <div class="bg-brand-50 rounded-xl p-3"><div class="text-2xl font-black text-brand-700">${warns?.length||0}</div><div class="text-brand-400 text-xs">Avisos</div></div>
+      <div class="bg-red-50 rounded-xl p-3"><div class="text-2xl font-black text-red-600">${bans?.length||0}</div><div class="text-brand-400 text-xs">Bans</div></div>
+      <div class="bg-orange-50 rounded-xl p-3"><div class="text-2xl font-black text-orange-600">${reports?.length||0}</div><div class="text-brand-400 text-xs">DenÃºncias</div></div>
+    </div>
+    ${warns?.length?`<div><div class="text-brand-700 font-semibold text-sm mb-2">Ãšltimos avisos</div>${warns.slice(0,5).map(w=>`<div class="text-xs text-brand-500 py-1.5 border-b border-brand-50 flex justify-between"><span>${w.reason||'â€”'}</span><span class="text-brand-300">${fd(w.created_at)}</span></div>`).join('')}</div>`:''}
+    ${reports?.length?`<div><div class="text-brand-700 font-semibold text-sm mb-2">DenÃºncias recebidas</div>${reports.slice(0,3).map(r=>`<div class="text-xs text-brand-500 py-1.5 border-b border-brand-50 truncate">${r.message_text||'â€”'}</div>`).join('')}</div>`:''}
+    <div class="flex gap-2 pt-2">
+      <button onclick="warnM('${uid}','${gid}');cm('mm')" class="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-600 text-sm py-2 rounded-xl font-medium">âš  Warn</button>
+      <button onclick="cm('mm')" class="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-600 text-sm py-2 rounded-xl font-medium">Fechar</button>
+    </div>`
+  om('mm')
+}
+
+async function warnM(uid, gid) {
+  const reason = prompt('Motivo do aviso:', 'comportamento inadequado')
+  if (!reason) return
+  await SB.from('warnings').insert({group_id:gid, user_id:uid, reason})
+  toast('Aviso registado âœ…')
+  loadMembros()
+}
+
+async function loadMem() {
+  const {data:ctxs} = await SB.from('ai_memory').select('context_id').order('created_at',{ascending:false})
+  const unique = [...new Set(ctxs?.map(c=>c.context_id)||[])]
+  const sel = document.getElementById('fmem-ctx')
+  sel.innerHTML = '<option value="">Todos os contextos</option>' + unique.map(c=>`<option value="${c}">${c?.slice(-20)||'â€”'}</option>`).join('')
+
+  const ctx = sel.value
+  let q = SB.from('ai_memory').select('*').order('created_at',{ascending:false}).limit(100)
+  if (ctx) q = q.eq('context_id', ctx)
+  const {data} = await q
+  document.getElementById('memtb').innerHTML = data?.length ? data.map(m => `
+    <tr class="hover:bg-brand-50/50 transition">
+      <td class="px-5 py-3 text-brand-500 text-xs font-mono">${m.context_id?.slice(-20)||'â€”'}</td>
+      <td class="px-5 py-3">${badge(m.role, m.role)}</td>
+      <td class="px-5 py-3 text-brand-600 max-w-xs truncate text-xs" title="${(m.content||'').replace(/"/g,'&quot;')}">${m.content||'â€”'}</td>
+      <td class="px-5 py-3 text-brand-400 text-xs">${fd(m.created_at)}</td>
+      <td class="px-5 py-3"><button onclick="delMem('${m.id}')" class="text-red-400 hover:text-red-600 text-xs font-medium">Remover</button></td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty">Sem memÃ³ria</td></tr>'
+}
+
+async function delMem(id) {
+  await SB.from('ai_memory').delete().eq('id',id)
+  toast('Entrada removida')
+  loadMem()
+}
+
+async function clearMem() {
+  confirm2('Limpar memÃ³ria IA','Apagar todo o histÃ³rico de conversas?', async () => {
+    await SB.from('ai_memory').delete().neq('id','00000000-0000-0000-0000-000000000000')
+    toast('MemÃ³ria limpa âœ…')
+    loadMem()
+  })
+}
+
+async function loadBc() {
+  if (!grupos.length) await loadGrupos()
+  document.getElementById('bcmsg').addEventListener('input', () => {
+    document.getElementById('bclen').textContent = document.getElementById('bcmsg').value.length
+  })
+  renderBcH()
+}
+
+function setBc(t) {
+  bcType = t
+  ;['texto','anuncio','sondagem'].forEach(x => {
+    document.getElementById('bct-'+x).className = x===t ? 'ta flex-1 py-2 rounded-xl text-sm font-medium transition' : 'ti flex-1 py-2 rounded-xl text-sm font-medium transition'
+  })
+  document.getElementById('bcf').classList.toggle('hidden', t==='sondagem')
+  document.getElementById('bcpf').classList.toggle('hidden', t!=='sondagem')
+}
+
+async function sendBc() {
+  const gid = document.getElementById('bcg').value
+  let payload = {}
+  if (bcType==='sondagem') {
+    const q = document.getElementById('bcpq').value
+    const opts = [document.getElementById('bcp1').value, document.getElementById('bcp2').value, document.getElementById('bcp3').value].filter(Boolean)
+    if (!q || opts.length<2) { toast('Preenche pergunta e pelo menos 2 opÃ§Ãµes','âŒ'); return }
+    payload = {type:'poll', question:q, options:opts}
+  } else {
+    const msg = document.getElementById('bcmsg').value.trim()
+    if (!msg) { toast('Escreve uma mensagem','âŒ'); return }
+    payload = {type:bcType, message:msg}
+  }
+  const targets = gid==='all' ? grupos.map(g=>g.whatsapp_group_id) : [gid]
+
+  // Enviar via API do bot
+  let sent = 0, failed = 0
+  try {
+    const r = await fetch(`${API}/api/broadcast`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ group_ids: targets, message: payload.message || payload.question })
+    })
+    const j = await r.json()
+    sent = j.results?.filter(x=>x.ok).length || 0
+    failed = j.results?.filter(x=>!x.ok).length || 0
+  } catch {
+    toast('Bot offline â€” broadcast nÃ£o enviado', 'âŒ')
+    return
+  }
+
+  bcHist.unshift({ts:new Date().toLocaleString('pt-PT'), targets:targets.length, sent, failed, payload})
+  renderBcH()
+  toast(`Enviado para ${sent}/${targets.length} grupo(s)${failed?' (âŒ '+failed+' falhou)':' âœ…'}`)
+}
+
+  bcHist.unshift({ts:new Date().toLocaleString('pt-PT'), targets:targets.length, sent, failed, payload})
+  renderBcH()
+  toast(`Enviado para ${sent}/${targets.length} grupo(s)${failed?' (âŒ '+failed+' falhou)':' âœ…'}`)
+}
+
+function renderBcH() {
+  const el = document.getElementById('bch')
+  el.innerHTML = bcHist.length ? bcHist.slice(0,10).map(h => `
+    <div class="bg-brand-50 rounded-xl p-3">
+      <div class="flex items-center justify-between mb-1">
+        <span class="badge bi">${h.payload.type}</span>
+        <span class="text-brand-400 text-xs">${h.ts}</span>
+      </div>
+      <div class="text-brand-700 text-xs truncate">${h.payload.message||h.payload.question||'â€”'}</div>
+      <div class="text-brand-400 text-xs mt-1">${h.sent||0}âœ… / ${h.failed||0}âŒ de ${h.targets} grupo(s)</div>
+    </div>`).join('') : '<div class="text-brand-300 text-sm py-4 text-center">Sem histÃ³rico.</div>'
+}
+
+// â”€â”€ PÃ¡gina ConexÃ£o â”€â”€
+async function loadConexao() {
+  await checkStatus()
+  await loadQR()
+}
+
+async function checkStatus() {
+  try {
+    const r = await fetch(`${API}/api/status`)
+    const j = await r.json()
+    const dot = document.getElementById('cdot')
+    const icon = document.getElementById('cstatus-icon')
+    const text = document.getElementById('cstatus-text')
+    const phone = document.getElementById('cstatus-phone')
+    const uptime = document.getElementById('cstatus-uptime')
+    if (j.connected) {
+      dot.className = 'dot dg'
+      icon.textContent = 'âœ…'
+      text.textContent = 'Conectado'
+      phone.textContent = j.phone ? `+${j.phone}` : ''
+    } else {
+      dot.className = 'dot dr pulse'
+      icon.textContent = 'ðŸ”´'
+      text.textContent = j.status === 'connecting' ? 'A conectar...' : 'Desconectado'
+      phone.textContent = ''
+    }
+    const s = j.uptime||0
+    uptime.textContent = `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m ${s%60}s`
+  } catch {
+    document.getElementById('cstatus-text').textContent = 'Bot offline'
+    document.getElementById('cstatus-icon').textContent = 'âš ï¸'
+  }
+}
+
+async function loadQR() {
+  const area = document.getElementById('qr-area')
+  const msg = document.getElementById('qr-msg')
+  try {
+    const r = await fetch(`${API}/api/qr`)
+    const j = await r.json()
+    if (j.connected) {
+      area.innerHTML = '<div class="text-green-600 text-4xl">âœ…</div><div class="text-green-600 font-bold mt-2">JÃ¡ conectado</div>'
+    } else if (j.qr) {
+      area.innerHTML = `<img src="${j.qr}" class="rounded-xl" style="width:220px;height:220px"/>`
+    } else {
+      area.innerHTML = '<div class="text-brand-300 text-sm">A aguardar QR do bot...</div><div class="text-brand-400 text-xs mt-2">Certifica-te que o bot estÃ¡ a correr</div>'
+    }
+  } catch {
+    area.innerHTML = '<div class="text-red-400 text-sm">âŒ Bot offline ou API inacessÃ­vel</div>'
+  }
+}
+
+async function requestPair() {
+  const phone = document.getElementById('pair-phone').value.replace(/\D/g,'')
+  if (!phone) { toast('Introduz o nÃºmero de telefone','âŒ'); return }
+  try {
+    const r = await fetch(`${API}/api/pair`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ phone })
+    })
+    const j = await r.json()
+    if (j.connected) { toast('JÃ¡ estÃ¡ conectado âœ…'); return }
+    if (j.error) { toast(j.error,'âŒ'); return }
+    document.getElementById('pair-code').textContent = j.code
+    document.getElementById('pair-result').classList.remove('hidden')
+  } catch {
+    toast('Bot offline ou API inacessÃ­vel','âŒ')
+  }
+}
+
+// Init
+Promise.all([loadContacts(), loadGrupos()]).then(() => loadDash())
+setInterval(loadContacts, 60000)
+</script>
+</body>
+</html>
+
