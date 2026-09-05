@@ -67,21 +67,6 @@ app.get('/api/qr', async (req, res) => {
   }
 })
 
-// Conexão por código de emparelhamento
-app.post('/api/pair', async (req, res) => {
-  const { phone } = req.body
-  if (!phone) return res.status(400).json({ error: 'Número obrigatório' })
-  if (connectionStatus === 'connected') return res.json({ connected: true })
-  if (!sockInstance) return res.status(503).json({ error: 'Bot ainda não iniciado' })
-  try {
-    const num = phone.replace(/\D/g, '')
-    const code = await sockInstance.requestPairingCode(num)
-    res.json({ code: code?.match(/.{1,4}/g)?.join('-') || code })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
 // Readmitir utilizador banido
 app.post('/api/unban', async (req, res) => {
   const { user_jid, group_id } = req.body
@@ -151,10 +136,12 @@ async function startOrbis() {
     auth: state,
     logger: pino({ level: 'silent' }),
     printQRInTerminal: false,
+    generateHighQualityLinkPreview: false,
   })
 
   sockInstance = sock
   connectionStatus = 'connecting'
+  currentQR = null
 
   sock.ev.on('creds.update', saveCreds)
 
@@ -162,10 +149,8 @@ async function startOrbis() {
     if (qr) {
       currentQR = qr
       connectionStatus = 'connecting'
-      console.clear()
-      console.log('\n🔵 ORBIS — Scan o QR Code para conectar:\n')
+      console.log('\n🔵 ORBIS — QR Code gerado. Abre o dashboard → Conexão\n')
       qrcode.generate(qr, { small: true })
-      console.log('\n🌐 Ou abre o dashboard e usa a página Conexão\n')
     }
     if (connection === 'open') {
       currentQR = null
@@ -173,10 +158,12 @@ async function startOrbis() {
       logger.success('Orbis conectado ao WhatsApp ✅')
     }
     if (connection === 'close') {
+      currentQR = null
       connectionStatus = 'disconnected'
-      const shouldReconnect = new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
-      logger.warn(`Conexão encerrada. Reconectar: ${shouldReconnect}`)
-      if (shouldReconnect) startOrbis()
+      const code = new Boom(lastDisconnect?.error)?.output?.statusCode
+      const shouldReconnect = code !== DisconnectReason.loggedOut
+      logger.warn(`Conexão encerrada (${code}). Reconectar: ${shouldReconnect}`)
+      if (shouldReconnect) setTimeout(() => startOrbis(), 3000)
     }
   })
 
