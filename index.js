@@ -97,13 +97,26 @@ app.post('/api/unban', async (req, res) => {
 
 // Broadcast
 app.post('/api/broadcast', async (req, res) => {
-  const { group_ids, message } = req.body
-  if (!group_ids?.length || !message) return res.status(400).json({ error: 'group_ids e message obrigatórios' })
-  if (!sockInstance || connectionStatus !== 'connected') return res.status(503).json({ error: 'Bot não conectado' })
+  const { group_ids, type, message, question, options } = req.body
+  if (!group_ids?.length) return res.status(400).json({ error: 'group_ids obrigatorio' })
+  if (!sockInstance || connectionStatus !== 'connected') return res.status(503).json({ error: 'Bot nao conectado' })
   const results = []
   for (const gid of group_ids) {
     try {
-      await sockInstance.sendMessage(gid, { text: message })
+      if (type === 'sondagem' && question && options?.length >= 2) {
+        await sockInstance.sendMessage(gid, {
+          poll: { name: question, values: options, selectableCount: 1 }
+        })
+      } else if (type === 'anuncio' && message) {
+        await sockInstance.sendMessage(gid, {
+          text: `📢 *AVISO IMPORTANTE*\n\n${message}\n\n— _Administração_`
+        })
+      } else if (message) {
+        await sockInstance.sendMessage(gid, { text: message })
+      } else {
+        results.push({ gid, ok: false, error: 'payload invalido' })
+        continue
+      }
       results.push({ gid, ok: true })
     } catch (err) {
       results.push({ gid, ok: false, error: err.message })
