@@ -1,5 +1,6 @@
-import { detectLink, detectFlood, detectSpam } from './detector.js'
+import { detectLink, detectFlood, detectSpam, isQuietHours } from './detector.js'
 import { addWarning, getGroupConfig, ensureGroup, addLog } from './warnings.js'
+import { penalizePoints } from './reputation.js'
 import { notifyAdmins, getMentionText, resolveJid } from '../utils/notify.js'
 import logger from '../core/logger.js'
 import config from '../../config/index.js'
@@ -13,28 +14,22 @@ export async function autoModerate(sock, msg) {
   const sender = msg.key.participant || ''
   const senderNum = sender.replace('@s.whatsapp.net', '').replace('@lid', '').split(':')[0]
 
-  // Owner é imune
   if (senderNum === config.owner || senderNum === config.ownerLid) return false
 
   let meta = null
-  try {
-    meta = await sock.groupMetadata(groupId)
-  } catch { return false }
+  try { meta = await sock.groupMetadata(groupId) } catch { return false }
 
-  // Registar grupo se não existir
   await ensureGroup(groupId, meta?.subject || groupId)
-
   const groupCfg = await getGroupConfig(groupId)
   if (!groupCfg) return false
 
-  // Admins não são moderados
   const admins = meta.participants.filter(p => p.admin).map(p =>
     p.id.replace('@s.whatsapp.net', '').replace('@lid', '').split(':')[0]
   )
   if (admins.includes(senderNum)) return false
 
   let reason = null
-  if (groupCfg.anti_link_enabled && detectLink(body)) reason = 'link proibido'
+  if (groupCfg.anti_link_enabled && detectLink(body, groupCfg.link_whitelist)) reason = 'link proibido'
   else if (groupCfg.anti_spam_enabled && detectSpam(body)) reason = 'spam detectado'
   else if (groupCfg.anti_flood_enabled && detectFlood(sender)) reason = 'flood detectado'
 
@@ -46,19 +41,16 @@ export async function autoModerate(sock, msg) {
   const limit = groupCfg.warnings_limit || 3
 
   await addLog(groupId, senderNum, 'automod', `${reason} — aviso ${total}/${limit}`)
+  if (groupCfg.reputation_enabled) await penalizePoints(groupId, senderNum, 20)
 
   if (total >= limit) {
-    // Guardar ban com número de telefone real se disponível
     const participant = meta?.participants?.find(p =>
       p.id.replace('@s.whatsapp.net','').replace('@lid','').split(':')[0] === senderNum
     )
     const phoneNum = participant?.phoneNumber || senderNum
     await supabase.from('banned_users').insert({
-      group_id: groupId,
-      user_id: phoneNum,
-      user_jid: sender,
-      reason: `automod: ${reason}`,
-      banned_by: 'automod'
+      group_id: groupId, user_id: phoneNum, user_jid: sender,
+      reason: `automod: ${reason}`, banned_by: 'automod'
     })
     await sock.groupParticipantsUpdate(groupId, [sender], 'remove')
     await sock.sendMessage(groupId, {

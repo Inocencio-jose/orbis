@@ -5,6 +5,8 @@ import qrcode from 'qrcode-terminal'
 import QRCode from 'qrcode'
 import express from 'express'
 import cors from 'cors'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 
 import logger from './src/core/logger.js'
 import config from './config/index.js'
@@ -15,15 +17,23 @@ import { askOrbis, observeMessage, getGroupContext } from './src/core/ai.js'
 import { detectAdminCommand, analyzeUserBehavior, executeAction } from './src/core/actions.js'
 import { getRole } from './src/permissions/index.js'
 import { getName, cacheName } from './src/utils/notify.js'
+import { saveSessionToSupabase, loadSessionFromSupabase, clearSessionFromSupabase } from './src/core/session.js'
+import { initScheduler } from './src/core/scheduler.js'
+import { addPoints } from './src/moderation/reputation.js'
+import { getGroupConfig } from './src/moderation/warnings.js'
+import { isQuietHours } from './src/moderation/detector.js'
 
-// Carregar comandos
 import './src/commands/general.js'
 import './src/commands/moderation.js'
 import './src/commands/reports.js'
 import './src/commands/config.js'
 import './src/commands/instructions.js'
+import './src/commands/ai_commands.js'
+import './src/commands/extra_commands.js'
 
-// Rate limiting de comandos: máx 3 comandos por 5s por utilizador
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const DASHBOARD_PASS = process.env.DASHBOARD_PASS || 'orbis2024'
+
 const commandRateLimit = new Map()
 function isRateLimited(userId) {
   const now = Date.now()
@@ -34,18 +44,36 @@ function isRateLimited(userId) {
   return entry.count > 3
 }
 
-// Estado global da conexão
 let currentQR = null
-let connectionStatus = 'disconnected' // disconnected | connecting | connected
+let connectionStatus = 'disconnected'
 let sockInstance = null
 const startTime = Date.now()
 
-// ── Servidor Express ──────────────────────────────────────────────────────────
+// ── Express ───────────────────────────────────────────────────────────────────
 const app = express()
 app.use(cors())
 app.use(express.json())
 
-// Status da conexão
+// Autenticação simples para o dashboard
+function authMiddleware(req, res, next) {
+  const pass = req.query.pass || req.headers['x-dashboard-pass']
+  if (pass === DASHBOARD_PASS) return next()
+  // Sem password — redireciona para login
+  if (req.path === '/' || req.path === '/dashboard') {
+    return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Orbis — Login</title>
+    <style>*{box-sizing:border-box}body{font-family:sans-serif;background:#1e1b4b;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+    .box{background:#fff;border-radius:16px;padding:40px;width:320px;text-align:center}
+    h2{color:#4338ca;margin-bottom:24px}input{width:100%;padding:10px 14px;border:1px solid #c7d2fe;border-radius:10px;font-size:15px;margin-bottom:16px}
+    button{width:100%;padding:12px;background:#6366f1;color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:600}
+    button:hover{background:#4f46e5}</style></head>
+    <body><div class="box"><h2>🔵 Orbis</h2>
+    <form onsubmit="event.preventDefault();window.location='/?pass='+document.getElementById('p').value">
+    <input id="p" type="password" placeholder="Password do dashboard" autofocus/>
+    <button type="submit">Entrar</button></form></div></body></html>`)
+  }
+  res.status(401).json({ error: 'Não autorizado' })
+}
+
 app.get('/api/status', (req, res) => {
   res.json({
     status: connectionStatus,
@@ -55,7 +83,6 @@ app.get('/api/status', (req, res) => {
   })
 })
 
-// QR Code como imagem base64
 app.get('/api/qr', async (req, res) => {
   if (connectionStatus === 'connected') return res.json({ connected: true })
   if (!currentQR) return res.json({ qr: null, message: 'A aguardar QR...' })
@@ -67,12 +94,11 @@ app.get('/api/qr', async (req, res) => {
   }
 })
 
-// Codigo de emparelhamento
 app.post('/api/pair', async (req, res) => {
   const { phone } = req.body
-  if (!phone) return res.status(400).json({ error: 'Numero obrigatorio' })
+  if (!phone) return res.status(400).json({ error: 'Número obrigatório' })
   if (connectionStatus === 'connected') return res.json({ connected: true })
-  if (!sockInstance) return res.status(503).json({ error: 'Bot ainda nao iniciado' })
+  if (!sockInstance) return res.status(503).json({ error: 'Bot ainda não iniciado' })
   try {
     const num = phone.replace(/\D/g, '')
     const code = await sockInstance.requestPairingCode(num)
@@ -82,7 +108,6 @@ app.post('/api/pair', async (req, res) => {
   }
 })
 
-// Readmitir utilizador banido
 app.post('/api/unban', async (req, res) => {
   const { user_jid, group_id } = req.body
   if (!user_jid || !group_id) return res.status(400).json({ error: 'user_jid e group_id obrigatórios' })
@@ -95,7 +120,6 @@ app.post('/api/unban', async (req, res) => {
   }
 })
 
-// Broadcast
 app.post('/api/broadcast', async (req, res) => {
   const { group_ids, type, message, question, options } = req.body
   if (!group_ids?.length) return res.status(400).json({ error: 'group_ids obrigatorio' })
@@ -104,18 +128,13 @@ app.post('/api/broadcast', async (req, res) => {
   for (const gid of group_ids) {
     try {
       if (type === 'sondagem' && question && options?.length >= 2) {
-        await sockInstance.sendMessage(gid, {
-          poll: { name: question, values: options, selectableCount: 1 }
-        })
+        await sockInstance.sendMessage(gid, { poll: { name: question, values: options, selectableCount: 1 } })
       } else if (type === 'anuncio' && message) {
-        await sockInstance.sendMessage(gid, {
-          text: `📢 *AVISO IMPORTANTE*\n\n${message}\n\n— _Administração_`
-        })
+        await sockInstance.sendMessage(gid, { text: `📢 *AVISO IMPORTANTE*\n\n${message}\n\n— _Administração_` })
       } else if (message) {
         await sockInstance.sendMessage(gid, { text: message })
       } else {
-        results.push({ gid, ok: false, error: 'payload invalido' })
-        continue
+        results.push({ gid, ok: false, error: 'payload invalido' }); continue
       }
       results.push({ gid, ok: true })
     } catch (err) {
@@ -125,24 +144,30 @@ app.post('/api/broadcast', async (req, res) => {
   res.json({ results })
 })
 
-import { readFileSync } from 'fs'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
-const __dirname = dirname(fileURLToPath(import.meta.url))
-
-app.get('/', (req, res) => {
-  res.sendFile(join(__dirname, 'dashboard.html'))
+// Logout — limpa sessão
+app.post('/api/logout', async (req, res) => {
+  try {
+    if (sockInstance) await sockInstance.logout()
+  } catch {}
+  await clearSessionFromSupabase()
+  connectionStatus = 'disconnected'
+  currentQR = null
+  res.json({ ok: true })
+  setTimeout(() => startOrbis(), 2000)
 })
 
-app.get('/logo.png', (req, res) => {
-  res.sendFile(join(__dirname, 'logo.png'))
-})
+// Dashboard com autenticação
+app.get('/', authMiddleware, (req, res) => res.sendFile(join(__dirname, 'dashboard.html')))
+app.get('/logo.png', (req, res) => res.sendFile(join(__dirname, 'logo.png')))
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => logger.info(`API disponível em http://localhost:${PORT}`))
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function startOrbis() {
+  // Carregar sessão do Supabase antes de iniciar
+  await loadSessionFromSupabase()
+
   const { state, saveCreds } = await useMultiFileAuthState('./sessions')
   const { version } = await fetchLatestBaileysVersion()
 
@@ -159,7 +184,11 @@ async function startOrbis() {
   connectionStatus = 'connecting'
   currentQR = null
 
-  sock.ev.on('creds.update', saveCreds)
+  sock.ev.on('creds.update', async (creds) => {
+    await saveCreds()
+    // Guardar sessão no Supabase sempre que as credenciais mudam
+    await saveSessionToSupabase()
+  })
 
   sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
     if (qr) {
@@ -172,6 +201,8 @@ async function startOrbis() {
       currentQR = null
       connectionStatus = 'connected'
       logger.success('Orbis conectado ao WhatsApp ✅')
+      saveSessionToSupabase()
+      initScheduler(sock)
     }
     if (connection === 'close') {
       currentQR = null
@@ -180,6 +211,7 @@ async function startOrbis() {
       const shouldReconnect = code !== DisconnectReason.loggedOut
       logger.warn(`Conexão encerrada (${code}). Reconectar: ${shouldReconnect}`)
       if (shouldReconnect) setTimeout(() => startOrbis(), 3000)
+      else clearSessionFromSupabase()
     }
   })
 
@@ -195,31 +227,28 @@ async function startOrbis() {
       const isGroup = msg.key.remoteJid?.endsWith('@g.us')
 
       if (!isGroup) {
-        // Mensagens privadas — só IA
         if (body.trim()) {
           try {
             await sock.sendPresenceUpdate('composing', msg.key.remoteJid)
             const reply = await askOrbis(body, msg.key.remoteJid, null)
             await sock.sendMessage(msg.key.remoteJid, { text: reply, quoted: msg })
-          } catch (err) {
-            logger.error(`Erro IA privado: ${err.message}`)
-          }
+          } catch (err) { logger.error(`Erro IA privado: ${err.message}`) }
         }
         continue
       }
 
-      // ── Obter metadata e role do sender ──────────────────────────────────
       let meta = null
       try { meta = await sock.groupMetadata(msg.key.remoteJid) } catch { continue }
 
       const senderJid = msg.key.participant || ''
       const senderNum = senderJid.replace('@s.whatsapp.net', '').replace('@lid', '').split(':')[0]
-      // Guardar nome e número no cache sempre que chega mensagem
+
       if (msg.pushName && senderJid) {
         const found = meta.participants.find(p => p.id === senderJid)
         const phone = found?.phoneNumber ? String(found.phoneNumber).replace(/\D/g,'') : null
         cacheName(senderJid, msg.pushName, phone)
       }
+
       const senderName = getName(senderJid, meta)
       const admins = meta.participants.filter(p => p.admin).map(p =>
         p.id.replace('@s.whatsapp.net', '').replace('@lid', '').split(':')[0]
@@ -227,48 +256,48 @@ async function startOrbis() {
       const role = getRole(senderNum, admins, config.ownerLid)
       const isAdmin = role === 'admin' || role === 'owner'
 
-      // ── Auto-moderação (detector de links/spam/flood) ─────────────────────
+      // Modo silêncio — IA não responde fora de horário (só admins passam)
+      const groupCfg = await getGroupConfig(msg.key.remoteJid).catch(() => null)
+      const quietMode = !isAdmin && isQuietHours(groupCfg)
+
       const blocked = await autoModerate(sock, msg)
       if (blocked) continue
 
-      // ── Observar mensagem para contexto da IA ────────────────────────────
       if (body.trim()) observeMessage(msg.key.remoteJid, senderName, body)
 
-      // ── Moderação autónoma por comportamento (observa TODOS) ─────────────
-      // Admins e owner nunca são moderados autonomamente
-      if (!isAdmin && body.trim()) {
-        try {
-          const recentCtx = getGroupContext(msg.key.remoteJid)
-          const violation = await analyzeUserBehavior(
-            msg.key.remoteJid, senderJid, senderName, body, meta, recentCtx
-          )
-          if (violation) {
-            const action = {
-              action: violation.recommended_action,
-              target: senderJid,
-              reason: violation.reason,
-              mute_duration: violation.mute_duration,
-            }
-            await executeAction(sock, action, msg.key.remoteJid, meta, null, true)
-            // Se foi kick/ban, não continua a processar
-            if (violation.recommended_action === 'kick' || violation.recommended_action === 'ban') continue
-          }
-        } catch (err) {
-          logger.warn(`Moderação autónoma erro: ${err.message}`)
+      // Reputação — pontos por mensagem
+      if (!isAdmin && body.trim() && groupCfg?.reputation_enabled) {
+        const result = await addPoints(msg.key.remoteJid, senderNum, 2).catch(() => null)
+        if (result?.levelUp) {
+          await sock.sendMessage(msg.key.remoteJid, {
+            text: `🎉 ${senderName} subiu para nível ${result.newLevel} — *${result.levelInfo.name}*! ⭐`,
+          })
         }
       }
 
-      // ── Comandos com prefixo ──────────────────────────────────────────────
+      if (!isAdmin && body.trim()) {
+        try {
+          const recentCtx = getGroupContext(msg.key.remoteJid)
+          const violation = await analyzeUserBehavior(msg.key.remoteJid, senderJid, senderName, body, meta, recentCtx)
+          if (violation) {
+            const action = { action: violation.recommended_action, target: senderJid, reason: violation.reason, mute_duration: violation.mute_duration }
+            await executeAction(sock, action, msg.key.remoteJid, meta, null, true)
+            if (violation.recommended_action === 'kick' || violation.recommended_action === 'ban') continue
+          }
+        } catch (err) { logger.warn(`Moderação autónoma erro: ${err.message}`) }
+      }
+
       if (body.startsWith(config.prefix)) {
         if (isRateLimited(senderJid)) {
-          await sock.sendMessage(msg.key.remoteJid, { text: '⏳ Estás a enviar comandos demasiado rápido. Aguarda uns segundos.' })
+          await sock.sendMessage(msg.key.remoteJid, { text: '⏳ Estás a enviar comandos demasiado rápido.' })
           continue
         }
         await handleCommand(sock, msg)
         continue
       }
 
-      // ── Triggers para IA ──────────────────────────────────────────────────
+      if (quietMode) continue
+
       const botJid = sock.user?.id
       const botNum = botJid?.split(':')[0]
       const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || []
@@ -282,22 +311,17 @@ async function startOrbis() {
         try {
           const recentContext = getGroupContext(msg.key.remoteJid)
 
-          // Comandos de admins via linguagem natural
           if (isAdmin) {
             const adminAction = await detectAdminCommand(body, role, meta, recentContext)
-            if (adminAction) {
-              await executeAction(sock, adminAction, msg.key.remoteJid, meta, senderJid, false)
-            }
+            if (adminAction) await executeAction(sock, adminAction, msg.key.remoteJid, meta, senderJid, false)
           }
 
-          // Targets mencionados na mensagem (excluindo o bot)
           const targetsToMention = mentioned.filter(j => j.split('@')[0].split(':')[0] !== botNum)
           const allMentions = [...new Set([senderJid, ...targetsToMention])]
 
           await sock.sendPresenceUpdate('composing', msg.key.remoteJid)
           const reply = await askOrbis(body, msg.key.remoteJid, meta)
 
-          // Processar @todos e resolver @Nome → JIDs
           let finalText = reply
           let allMentionsResolved = [...allMentions]
           const participants = meta.participants || []
@@ -317,14 +341,8 @@ async function startOrbis() {
             }
           }
 
-          await sock.sendMessage(msg.key.remoteJid, {
-            text: finalText,
-            mentions: allMentionsResolved,
-            quoted: msg
-          })
-        } catch (err) {
-          logger.error(`Erro na IA: ${err.message}`)
-        }
+          await sock.sendMessage(msg.key.remoteJid, { text: finalText, mentions: allMentionsResolved, quoted: msg })
+        } catch (err) { logger.error(`Erro na IA: ${err.message}`) }
       }
     }
   })

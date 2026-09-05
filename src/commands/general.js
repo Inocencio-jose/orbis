@@ -4,7 +4,7 @@ import { getMentionText, resolveJid } from '../utils/notify.js'
 
 registerCommand('menu', { description: 'Menu principal', permission: 'member' }, async ({ sock, groupId }) => {
   await sock.sendMessage(groupId, {
-    text: `🔵 *ORBIS*\n_The WhatsApp Management Assistant_\n_by Orion Technologies_\n\n` +
+    text: `🔵 *ORBIS*\n_by Orion Technologies_\n\n` +
       `👤 *Geral (todos):*\n` +
       `📋 /menu — Este menu\n` +
       `ℹ️ /info — Informações do grupo\n` +
@@ -12,34 +12,39 @@ registerCommand('menu', { description: 'Menu principal', permission: 'member' },
       `📜 /regras — Regras do grupo\n` +
       `📊 /stats — Estatísticas\n` +
       `🗳️ /sondagem <pergunta> | op1 | op2 — Enquete\n` +
-      `🚩 /denunciar — Responde a msg para denunciar\n` +
+      `🚩 /denunciar — Denunciar mensagem\n` +
+      `⭐ /reputacao [@membro] — Ver reputação\n` +
+      `🏆 /top — Top membros\n` +
+      `📋 /resumo [N] — Resumir conversa\n` +
       `📖 /instrucoes [secção] — Instruções detalhadas\n\n` +
       `🛡️ *Moderação (admins):*\n` +
       `⚠️ /warn @membro [motivo] — Advertir\n` +
       `🔕 /warnings @membro — Ver avisos\n` +
       `🧹 /clearwarn @membro — Limpar avisos\n` +
+      `📋 /historico @membro — Histórico de infrações\n` +
       `👢 /kick @membro — Expulsar\n` +
       `🔨 /ban @membro [motivo] — Banir\n` +
       `📜 /banidos — Lista de banidos\n` +
       `➕ /adicionar <número> — Readmitir banido\n` +
-      `🔒 /trancar — Só admins enviam\n` +
-      `🔓 /abrir — Todos podem enviar\n` +
+      `🔒 /trancar / 🔓 /abrir — Trancar/abrir grupo\n` +
       `🔇 /mute @membro [10m|1h|2d] — Mutar\n` +
       `🔊 /unmute @membro — Desmutar\n` +
-      `👑 /promover @membro — Promover a admin\n` +
-      `🔒 /despromover @membro — Despromover\n` +
+      `👑 /promover / /despromover @membro\n` +
       `📢 /anunciar <texto> — Anúncio\n` +
-      `⏰ /agendamento <tempo> <msg> — Agendar mensagem\n` +
-      `👤 /membros — Lista de membros\n` +
+      `⏰ /agendamento <tempo> <msg> — Agendar (único)\n` +
+      `⏰ /agendarcorrente <DAILY|MON-FRI> <HH:MM> <msg>\n` +
+      `📋 /agendamentos — Ver agendamentos\n` +
       `🚨 /denuncias — Ver denúncias\n\n` +
       `⚙️ *Configuração (admins):*\n` +
+      `⚙️ /config — Ver/alterar configurações\n` +
       `🔗 /antilink on|off — Anti-link\n` +
       `🚫 /antispam on|off — Anti-spam\n` +
       `🌊 /antiflood on|off — Anti-flood\n` +
       `📝 /setregras <texto> — Definir regras\n` +
-      `👋 /setwelcome <msg> — Boas-vindas ({nome} {grupo})\n` +
-      `⚙️ /config — Ver todas as configurações\n` +
-      `🔔 /setadmingroup <id> — Grupo de notificações\n`
+      `👋 /setwelcome <msg> — Boas-vindas\n` +
+      `🔔 /setadmingroup <id> — Grupo de notificações\n` +
+      `📋 /resumodiario on|off [hora] — Resumo diário\n\n` +
+      `_/instrucoes extra — reputação, whitelist, modo silêncio_`
   })
 })
 
