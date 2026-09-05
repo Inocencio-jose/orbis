@@ -125,6 +125,19 @@ app.post('/api/broadcast', async (req, res) => {
   res.json({ results })
 })
 
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, 'dashboard.html'))
+})
+
+app.get('/logo.png', (req, res) => {
+  res.sendFile(join(__dirname, 'logo.png'))
+})
+
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => logger.info(`API disponível em http://localhost:${PORT}`))
 // ─────────────────────────────────────────────────────────────────────────────
