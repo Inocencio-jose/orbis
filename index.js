@@ -67,6 +67,21 @@ app.get('/api/qr', async (req, res) => {
   }
 })
 
+// Codigo de emparelhamento
+app.post('/api/pair', async (req, res) => {
+  const { phone } = req.body
+  if (!phone) return res.status(400).json({ error: 'Numero obrigatorio' })
+  if (connectionStatus === 'connected') return res.json({ connected: true })
+  if (!sockInstance) return res.status(503).json({ error: 'Bot ainda nao iniciado' })
+  try {
+    const num = phone.replace(/\D/g, '')
+    const code = await sockInstance.requestPairingCode(num)
+    res.json({ code: code?.match(/.{1,4}/g)?.join('-') || code })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // Readmitir utilizador banido
 app.post('/api/unban', async (req, res) => {
   const { user_jid, group_id } = req.body
@@ -137,6 +152,7 @@ async function startOrbis() {
     logger: pino({ level: 'silent' }),
     printQRInTerminal: false,
     generateHighQualityLinkPreview: false,
+    mobile: false,
   })
 
   sockInstance = sock
