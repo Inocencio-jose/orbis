@@ -14,7 +14,7 @@ import { handleCommand } from './src/commands/index.js'
 import { handleGroupEvents } from './src/groups/events.js'
 import { autoModerate } from './src/moderation/automod.js'
 import { askOrbis, observeMessage, getGroupContext } from './src/core/ai.js'
-import { detectAdminCommand, analyzeUserBehavior, executeAction } from './src/core/actions.js'
+import { detectAdminCommand, executeAction } from './src/core/actions.js'
 import { getRole } from './src/permissions/index.js'
 import { getName, cacheName } from './src/utils/notify.js'
 import { saveSessionToSupabase, loadSessionFromSupabase, clearSessionFromSupabase } from './src/core/session.js'
@@ -44,10 +44,127 @@ function isRateLimited(userId) {
   return entry.count > 3
 }
 
+// Delay humano: espera entre 1.5s e 4s antes de responder
+function humanDelay() {
+  const ms = 1500 + Math.random() * 2500
+  return new Promise(r => setTimeout(r, ms))
+}
+const metaCache = new Map()
+async function getGroupMeta(sock, groupId) {
+  const cached = metaCache.get(groupId)
+  if (cached && Date.now() - cached.ts < 120000) return cached.data
+  try {
+    const data = await sock.groupMetadata(groupId)
+    metaCache.set(groupId, { data, ts: Date.now() })
+    return data
+  } catch { return null }
+}
+
+// Processar uma mensagem de grupo de forma isolada (erros nao afectam outras)
+async function processGroupMessage(sock, msg) {
+  const groupId = msg.key.remoteJid
+  const body = msg.message?.conversation || msg.message?.extendedTextMessage?.text || ''
+
+  const meta = await getGroupMeta(sock, groupId)
+  if (!meta) return
+
+  const senderJid = msg.key.participant || ''
+  const senderNum = senderJid.replace('@s.whatsapp.net', '').replace('@lid', '').split(':')[0]
+
+  if (msg.pushName && senderJid) {
+    const found = meta.participants.find(p => p.id === senderJid)
+    const phone = found?.phoneNumber ? String(found.phoneNumber).replace(/\D/g, '') : null
+    cacheName(senderJid, msg.pushName, phone)
+  }
+
+  const senderName = getName(senderJid, meta)
+  const admins = meta.participants.filter(p => p.admin).map(p =>
+    p.id.replace('@s.whatsapp.net', '').replace('@lid', '').split(':')[0]
+  )
+  const role = getRole(senderNum, admins, config.ownerLid)
+  const isAdmin = role === 'admin' || role === 'owner'
+
+  const groupCfg = await getGroupConfig(groupId).catch(() => null)
+  const quietMode = !isAdmin && isQuietHours(groupCfg)
+
+  const blocked = await autoModerate(sock, msg)
+  if (blocked) return
+
+  if (body.trim()) observeMessage(groupId, senderName, body)
+
+  // Reputacao — pontos por mensagem
+  if (!isAdmin && body.trim() && groupCfg?.reputation_enabled) {
+    const result = await addPoints(groupId, senderNum, 2).catch(() => null)
+    if (result?.levelUp) {
+      await sock.sendMessage(groupId, {
+        text: `🎉 ${senderName} subiu para nível ${result.newLevel} — *${result.levelInfo.name}*! ⭐`
+      }).catch(() => {})
+    }
+  }
+
+  if (body.startsWith(config.prefix)) {
+    if (isRateLimited(senderJid)) {
+      await sock.sendMessage(groupId, { text: '⏳ Estás a enviar comandos demasiado rápido.' }).catch(() => {})
+      return
+    }
+    await handleCommand(sock, msg)
+    return
+  }
+
+  if (quietMode) return
+
+  const botJid = sock.user?.id
+  const botNum = botJid?.split(':')[0]
+  const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || []
+  const isMentioned = botNum && mentioned.some(j => j.split('@')[0].split(':')[0] === botNum)
+  const nameTriggered = /\borbis\b/i.test(body)
+  const quotedParticipant = msg.message?.extendedTextMessage?.contextInfo?.participant
+  const isReplyToBot = botNum && quotedParticipant && quotedParticipant.includes(botNum)
+
+  if ((isMentioned || nameTriggered || isReplyToBot) && body.trim()) {
+    logger.info(`IA activada por ${senderName} (${role})`)
+
+    if (isAdmin) {
+      const recentContext = getGroupContext(groupId)
+      const adminAction = await detectAdminCommand(body, role, meta, recentContext).catch(() => null)
+      if (adminAction) await executeAction(sock, adminAction, groupId, meta, senderJid, false).catch(() => {})
+    }
+
+    const targetsToMention = mentioned.filter(j => j.split('@')[0].split(':')[0] !== botNum)
+    const allMentions = [...new Set([senderJid, ...targetsToMention])]
+
+    await sock.sendPresenceUpdate('composing', groupId).catch(() => {})
+    await humanDelay()
+    const reply = await askOrbis(body, groupId, meta)
+
+    let finalText = reply
+    let allMentionsResolved = [...allMentions]
+    const participants = meta.participants || []
+
+    if (/@todos/i.test(reply)) {
+      const todosText = participants.map(p => `@${getName(p.id, meta)}`).join(' ')
+      finalText = finalText.replace(/@todos/gi, todosText)
+      allMentionsResolved = [...new Set([...allMentionsResolved, ...participants.map(p => p.id)])]
+    }
+
+    for (const p of participants) {
+      const name = getName(p.id, meta)
+      if (!name || name === p.id.split('@')[0]) continue
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      if (new RegExp(`@${escaped}`, 'gi').test(finalText) && !allMentionsResolved.includes(p.id)) {
+        allMentionsResolved.push(p.id)
+      }
+    }
+
+    await sock.sendMessage(groupId, { text: finalText, mentions: allMentionsResolved, quoted: msg }).catch(() => {})
+  }
+}
+
 let currentQR = null
 let connectionStatus = 'disconnected'
 let sockInstance = null
 let reconnecting = false
+let reconnectAttempts = 0
 const startTime = Date.now()
 
 // ── Express ───────────────────────────────────────────────────────────────────
@@ -146,6 +263,8 @@ app.post('/api/broadcast', async (req, res) => {
     } catch (err) {
       results.push({ gid, ok: false, error: err.message })
     }
+    // Delay entre grupos no broadcast para nao parecer spam
+    if (group_ids.length > 1) await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000))
   }
   res.json({ results })
 })
@@ -188,6 +307,9 @@ async function startOrbis() {
     printQRInTerminal: false,
     generateHighQualityLinkPreview: false,
     mobile: false,
+    markOnlineOnConnect: false,
+    syncFullHistory: false,
+    fireInitQueries: false,
   })
 
   sockInstance = sock
@@ -210,6 +332,7 @@ async function startOrbis() {
     if (connection === 'open') {
       currentQR = null
       connectionStatus = 'connected'
+      reconnectAttempts = 0
       logger.success('Orbis conectado ao WhatsApp ✅')
       saveSessionToSupabase()
       initScheduler(sock)
@@ -220,8 +343,15 @@ async function startOrbis() {
       const code = new Boom(lastDisconnect?.error)?.output?.statusCode
       const shouldReconnect = code !== DisconnectReason.loggedOut
       logger.warn(`Conexão encerrada (${code}). Reconectar: ${shouldReconnect}`)
-      if (shouldReconnect) setTimeout(() => startOrbis(), 4000)
-      else clearSessionFromSupabase()
+      if (shouldReconnect) {
+        reconnectAttempts++
+        // Backoff exponencial: 4s, 8s, 16s, max 60s
+        const delay = Math.min(4000 * Math.pow(2, reconnectAttempts - 1), 60000)
+        logger.info(`A reconectar em ${delay / 1000}s (tentativa ${reconnectAttempts})`)
+        setTimeout(() => startOrbis(), delay)
+      } else {
+        clearSessionFromSupabase()
+      }
     }
   })
 
@@ -230,134 +360,34 @@ async function startOrbis() {
     const type = upsert.type ?? 'notify'
     if (type !== 'notify') return
 
-    for (const msg of messages) {
-      if (!msg.message || msg.key.fromMe) continue
+    // Processar todas as mensagens em paralelo — erros isolados por mensagem
+    await Promise.allSettled(messages.map(async (msg) => {
+      try {
+        if (!msg.message || msg.key.fromMe) return
 
-      const body = msg.message?.conversation || msg.message?.extendedTextMessage?.text || ''
-      const isGroup = msg.key.remoteJid?.endsWith('@g.us')
+        const body = msg.message?.conversation || msg.message?.extendedTextMessage?.text || ''
+        const isGroup = msg.key.remoteJid?.endsWith('@g.us')
 
-      if (!isGroup) {
-        if (body.trim()) {
-          try {
-            await sock.sendPresenceUpdate('composing', msg.key.remoteJid)
+        if (!isGroup) {
+          if (body.trim()) {
+            await humanDelay()
+            await sock.sendPresenceUpdate('composing', msg.key.remoteJid).catch(() => {})
             const reply = await askOrbis(body, msg.key.remoteJid, null)
-            await sock.sendMessage(msg.key.remoteJid, { text: reply, quoted: msg })
-          } catch (err) { logger.error(`Erro IA privado: ${err.message}`) }
+            await sock.sendMessage(msg.key.remoteJid, { text: reply, quoted: msg }).catch(() => {})
+          }
+          return
         }
-        continue
+
+        await processGroupMessage(sock, msg)
+      } catch (err) {
+        logger.error(`Erro ao processar mensagem: ${err.message}`)
       }
-
-      let meta = null
-      try { meta = await sock.groupMetadata(msg.key.remoteJid) } catch { continue }
-
-      const senderJid = msg.key.participant || ''
-      const senderNum = senderJid.replace('@s.whatsapp.net', '').replace('@lid', '').split(':')[0]
-
-      if (msg.pushName && senderJid) {
-        const found = meta.participants.find(p => p.id === senderJid)
-        const phone = found?.phoneNumber ? String(found.phoneNumber).replace(/\D/g,'') : null
-        cacheName(senderJid, msg.pushName, phone)
-      }
-
-      const senderName = getName(senderJid, meta)
-      const admins = meta.participants.filter(p => p.admin).map(p =>
-        p.id.replace('@s.whatsapp.net', '').replace('@lid', '').split(':')[0]
-      )
-      const role = getRole(senderNum, admins, config.ownerLid)
-      const isAdmin = role === 'admin' || role === 'owner'
-
-      // Modo silêncio — IA não responde fora de horário (só admins passam)
-      const groupCfg = await getGroupConfig(msg.key.remoteJid).catch(() => null)
-      const quietMode = !isAdmin && isQuietHours(groupCfg)
-
-      const blocked = await autoModerate(sock, msg)
-      if (blocked) continue
-
-      if (body.trim()) observeMessage(msg.key.remoteJid, senderName, body)
-
-      // Reputação — pontos por mensagem
-      if (!isAdmin && body.trim() && groupCfg?.reputation_enabled) {
-        const result = await addPoints(msg.key.remoteJid, senderNum, 2).catch(() => null)
-        if (result?.levelUp) {
-          await sock.sendMessage(msg.key.remoteJid, {
-            text: `🎉 ${senderName} subiu para nível ${result.newLevel} — *${result.levelInfo.name}*! ⭐`,
-          })
-        }
-      }
-
-      if (!isAdmin && body.trim()) {
-        try {
-          const recentCtx = getGroupContext(msg.key.remoteJid)
-          const violation = await analyzeUserBehavior(msg.key.remoteJid, senderJid, senderName, body, meta, recentCtx)
-          if (violation) {
-            const action = { action: violation.recommended_action, target: senderJid, reason: violation.reason, mute_duration: violation.mute_duration }
-            await executeAction(sock, action, msg.key.remoteJid, meta, null, true)
-            if (violation.recommended_action === 'kick' || violation.recommended_action === 'ban') continue
-          }
-        } catch (err) { logger.warn(`Moderação autónoma erro: ${err.message}`) }
-      }
-
-      if (body.startsWith(config.prefix)) {
-        if (isRateLimited(senderJid)) {
-          await sock.sendMessage(msg.key.remoteJid, { text: '⏳ Estás a enviar comandos demasiado rápido.' })
-          continue
-        }
-        await handleCommand(sock, msg)
-        continue
-      }
-
-      if (quietMode) continue
-
-      const botJid = sock.user?.id
-      const botNum = botJid?.split(':')[0]
-      const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || []
-      const isMentioned = botNum && mentioned.some(j => j.split('@')[0].split(':')[0] === botNum)
-      const nameTriggered = /\borbis\b/i.test(body)
-      const quotedParticipant = msg.message?.extendedTextMessage?.contextInfo?.participant
-      const isReplyToBot = botNum && quotedParticipant && quotedParticipant.includes(botNum)
-
-      if ((isMentioned || nameTriggered || isReplyToBot) && body.trim()) {
-        logger.info(`IA activada por ${senderName} (${role})`)
-        try {
-          const recentContext = getGroupContext(msg.key.remoteJid)
-
-          if (isAdmin) {
-            const adminAction = await detectAdminCommand(body, role, meta, recentContext)
-            if (adminAction) await executeAction(sock, adminAction, msg.key.remoteJid, meta, senderJid, false)
-          }
-
-          const targetsToMention = mentioned.filter(j => j.split('@')[0].split(':')[0] !== botNum)
-          const allMentions = [...new Set([senderJid, ...targetsToMention])]
-
-          await sock.sendPresenceUpdate('composing', msg.key.remoteJid)
-          const reply = await askOrbis(body, msg.key.remoteJid, meta)
-
-          let finalText = reply
-          let allMentionsResolved = [...allMentions]
-          const participants = meta.participants || []
-
-          if (/@todos/i.test(reply)) {
-            const todosText = participants.map(p => `@${getName(p.id, meta)}`).join(' ')
-            finalText = finalText.replace(/@todos/gi, todosText)
-            allMentionsResolved = [...new Set([...allMentionsResolved, ...participants.map(p => p.id)])]
-          }
-
-          for (const p of participants) {
-            const name = getName(p.id, meta)
-            if (!name || name === p.id.split('@')[0]) continue
-            const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-            if (new RegExp(`@${escaped}`, 'gi').test(finalText) && !allMentionsResolved.includes(p.id)) {
-              allMentionsResolved.push(p.id)
-            }
-          }
-
-          await sock.sendMessage(msg.key.remoteJid, { text: finalText, mentions: allMentionsResolved, quoted: msg })
-        } catch (err) { logger.error(`Erro na IA: ${err.message}`) }
-      }
-    }
+    }))
   })
 
   sock.ev.on('group-participants.update', async (event) => {
+    // Invalidar cache do grupo quando participantes mudam
+    metaCache.delete(event.id)
     await handleGroupEvents(sock, [event])
   })
 }
