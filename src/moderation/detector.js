@@ -30,7 +30,7 @@ export function detectSpam(text) {
 }
 
 export function isQuietHours(groupCfg) {
-  if (!groupCfg?.quiet_hours_start == null || groupCfg?.quiet_hours_end == null) return false
+  if (groupCfg?.quiet_hours_start == null || groupCfg?.quiet_hours_end == null) return false
   const hour = new Date().getHours()
   const start = groupCfg.quiet_hours_start
   const end = groupCfg.quiet_hours_end

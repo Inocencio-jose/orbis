@@ -397,6 +397,8 @@ input,textarea,select{outline:none}
         <div class="text-brand-300 text-sm">A carregar...</div>
       </div>
       <button onclick="loadQR()" class="w-full bg-brand-600 hover:bg-brand-700 text-white text-sm py-2.5 rounded-xl font-medium transition">Actualizar QR</button>
+      <button onclick="clearSession()" class="w-full bg-red-500 hover:bg-red-600 text-white text-sm py-2.5 rounded-xl font-medium transition">Limpar Sessao</button>
+      <p class="text-red-400 text-xs">Desconecta e apaga a sessao. Usa para trocar de numero.</p>
       <p class="text-brand-400 text-xs text-center">WhatsApp - Dispositivos ligados - Ligar dispositivo</p>
     </div>
   </div>
@@ -591,6 +593,8 @@ input,textarea,select{outline:none}
       <h3 class="text-brand-900 font-bold flex items-center gap-2"><span class="dot db"></span>QR Code</h3>
       <div id="qr-area" class="flex flex-col items-center justify-center bg-brand-50 rounded-xl p-6 min-h-48"><div class="text-brand-300 text-sm">A carregar...</div></div>
       <button onclick="loadQR()" class="w-full bg-brand-600 hover:bg-brand-700 text-white text-sm py-2.5 rounded-xl font-medium transition">Actualizar QR</button>
+      <button onclick="clearSession()" class="w-full bg-red-500 hover:bg-red-600 text-white text-sm py-2.5 rounded-xl font-medium transition">Limpar Sessao</button>
+      <p class="text-red-400 text-xs">Desconecta e apaga a sessao. Usa para trocar de numero.</p>
     </div>
   </div>
   <div class="card p-6 space-y-4 max-w-md">
@@ -1340,6 +1344,16 @@ function renderBcH() {
 }
 
 async function loadConexao(){await checkStatus();await loadQR()}
+
+async function clearSession() {
+  if(!confirm('Tens a certeza? Isto desconecta o bot e apaga a sessao. Teras de reconectar com QR.')) return
+  try {
+    const r = await fetch(API+'/api/logout', {method:'POST', headers:{'Content-Type':'application/json','x-dashboard-pass': typeof PASS !== 'undefined' ? PASS : ''}})
+    const j = await r.json()
+    if(j.ok) { toast('Sessao limpa. A aguardar QR...'); setTimeout(()=>loadQR(), 3000) }
+    else toast('Erro: '+(j.error||'desconhecido'), 'X')
+  } catch(e) { toast('Erro de ligacao', 'X') }
+}
 
 async function checkStatus() {
   try{

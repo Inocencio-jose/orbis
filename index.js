@@ -47,6 +47,7 @@ function isRateLimited(userId) {
 let currentQR = null
 let connectionStatus = 'disconnected'
 let sockInstance = null
+let reconnecting = false
 const startTime = Date.now()
 
 // ── Express ───────────────────────────────────────────────────────────────────
@@ -99,6 +100,11 @@ app.post('/api/pair', async (req, res) => {
   if (!phone) return res.status(400).json({ error: 'Número obrigatório' })
   if (connectionStatus === 'connected') return res.json({ connected: true })
   if (!sockInstance) return res.status(503).json({ error: 'Bot ainda não iniciado' })
+  // O pairing code só funciona enquanto o socket ainda não autenticou (sem sessão)
+  // e o socket tem de estar em estado 'connecting' com QR gerado
+  if (!currentQR && connectionStatus !== 'connecting') {
+    return res.status(400).json({ error: 'Bot não está em modo de emparelhamento. Usa o QR ou faz logout primeiro.' })
+  }
   try {
     const num = phone.replace(/\D/g, '')
     const code = await sockInstance.requestPairingCode(num)
@@ -147,13 +153,15 @@ app.post('/api/broadcast', async (req, res) => {
 // Logout — limpa sessão
 app.post('/api/logout', async (req, res) => {
   try {
-    if (sockInstance) await sockInstance.logout()
+    if (sockInstance) { sockInstance.ev.removeAllListeners(); await sockInstance.logout().catch(() => {}) }
   } catch {}
   await clearSessionFromSupabase()
   connectionStatus = 'disconnected'
   currentQR = null
+  sockInstance = null
+  reconnecting = false
   res.json({ ok: true })
-  setTimeout(() => startOrbis(), 2000)
+  setTimeout(() => startOrbis(), 1000)
 })
 
 // Dashboard com autenticação
@@ -165,7 +173,9 @@ app.listen(PORT, () => logger.info(`API disponível em http://localhost:${PORT}`
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function startOrbis() {
-  // Carregar sessão do Supabase antes de iniciar
+  if (reconnecting) return
+  reconnecting = true
+
   await loadSessionFromSupabase()
 
   const { state, saveCreds } = await useMultiFileAuthState('./sessions')
@@ -183,10 +193,10 @@ async function startOrbis() {
   sockInstance = sock
   connectionStatus = 'connecting'
   currentQR = null
+  reconnecting = false
 
-  sock.ev.on('creds.update', async (creds) => {
+  sock.ev.on('creds.update', async () => {
     await saveCreds()
-    // Guardar sessão no Supabase sempre que as credenciais mudam
     await saveSessionToSupabase()
   })
 
@@ -210,7 +220,7 @@ async function startOrbis() {
       const code = new Boom(lastDisconnect?.error)?.output?.statusCode
       const shouldReconnect = code !== DisconnectReason.loggedOut
       logger.warn(`Conexão encerrada (${code}). Reconectar: ${shouldReconnect}`)
-      if (shouldReconnect) setTimeout(() => startOrbis(), 3000)
+      if (shouldReconnect) setTimeout(() => startOrbis(), 4000)
       else clearSessionFromSupabase()
     }
   })
