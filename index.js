@@ -87,7 +87,7 @@ async function processGroupMessage(sock, msg) {
   const groupCfg = await getGroupConfig(groupId).catch(() => null)
   const quietMode = !isAdmin && isQuietHours(groupCfg)
 
-  const blocked = await autoModerate(sock, msg, meta)
+  const blocked = await autoModerate(sock, msg)
   if (blocked) return
 
   if (body.trim()) observeMessage(groupId, senderName, body)
