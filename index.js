@@ -217,11 +217,6 @@ app.post('/api/pair', async (req, res) => {
   if (!phone) return res.status(400).json({ error: 'Número obrigatório' })
   if (connectionStatus === 'connected') return res.json({ connected: true })
   if (!sockInstance) return res.status(503).json({ error: 'Bot ainda não iniciado' })
-  // O pairing code só funciona enquanto o socket ainda não autenticou (sem sessão)
-  // e o socket tem de estar em estado 'connecting' com QR gerado
-  if (!currentQR && connectionStatus !== 'connecting') {
-    return res.status(400).json({ error: 'Bot não está em modo de emparelhamento. Usa o QR ou faz logout primeiro.' })
-  }
   try {
     const num = phone.replace(/\D/g, '')
     const code = await sockInstance.requestPairingCode(num)
@@ -270,7 +265,7 @@ app.post('/api/broadcast', async (req, res) => {
 })
 
 // Logout — limpa sessão
-app.post('/api/logout', authMiddleware, async (req, res) => {
+app.post('/api/logout', async (req, res) => {
   try {
     if (sockInstance) { sockInstance.ev.removeAllListeners(); await sockInstance.logout().catch(() => {}) }
   } catch {}

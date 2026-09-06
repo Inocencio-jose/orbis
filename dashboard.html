@@ -685,6 +685,7 @@ const SB = supabase.createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudWlnZG1jc3d2cnpzdGRrcWVjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODU5OTY5MCwiZXhwIjoyMTA0MTc1NjkwfQ.xwBiIT3veDldXsDcvm6vbENv8AB3Fmmw7DdRk7iH0sA'
 )
 const API = 'https://orbis-c1az.onrender.com'
+const PASS = new URLSearchParams(window.location.search).get('pass') || ''
 let CP='dashboard', GID=null, grupos=[], charts={}, bcType='texto', bcHist=[], st=Date.now()
 let contacts={}
 
@@ -1348,11 +1349,11 @@ async function loadConexao(){await checkStatus();await loadQR()}
 async function clearSession() {
   if(!confirm('Tens a certeza? Isto desconecta o bot e apaga a sessao. Teras de reconectar com QR.')) return
   try {
-    const r = await fetch(API+'/api/logout', {method:'POST', headers:{'Content-Type':'application/json','x-dashboard-pass': typeof PASS !== 'undefined' ? PASS : ''}})
+    const r = await fetch(API+'/api/logout', {method:'POST', headers:{'Content-Type':'application/json','x-dashboard-pass':PASS}})
     const j = await r.json()
     if(j.ok) { toast('Sessao limpa. A aguardar QR...'); setTimeout(()=>loadQR(), 3000) }
     else toast('Erro: '+(j.error||'desconhecido'), 'X')
-  } catch(e) { toast('Erro de ligacao', 'X') }
+  } catch { toast('Erro de ligacao', 'X') }
 }
 
 async function checkStatus() {
