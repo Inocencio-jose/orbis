@@ -26,6 +26,7 @@ registerCommand('menu', { description: 'Menu principal', permission: 'member' },
       `🔨 /ban @membro [motivo] — Banir\n` +
       `📜 /banidos — Lista de banidos\n` +
       `➕ /adicionar <número> — Readmitir banido\n` +
+      `🗑️ /deletar — Apagar mensagem citada\n` +
       `🔒 /trancar / 🔓 /abrir — Trancar/abrir grupo\n` +
       `🔇 /mute @membro [10m|1h|2d] — Mutar\n` +
       `🔊 /unmute @membro — Desmutar\n` +

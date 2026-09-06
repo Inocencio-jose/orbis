@@ -87,7 +87,7 @@ async function processGroupMessage(sock, msg) {
   const groupCfg = await getGroupConfig(groupId).catch(() => null)
   const quietMode = !isAdmin && isQuietHours(groupCfg)
 
-  const blocked = await autoModerate(sock, msg)
+  const blocked = await autoModerate(sock, msg, meta)
   if (blocked) return
 
   if (body.trim()) observeMessage(groupId, senderName, body)
@@ -270,7 +270,7 @@ app.post('/api/broadcast', async (req, res) => {
 })
 
 // Logout — limpa sessão
-app.post('/api/logout', async (req, res) => {
+app.post('/api/logout', authMiddleware, async (req, res) => {
   try {
     if (sockInstance) { sockInstance.ev.removeAllListeners(); await sockInstance.logout().catch(() => {}) }
   } catch {}

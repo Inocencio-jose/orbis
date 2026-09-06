@@ -135,12 +135,13 @@ export async function askOrbis(question, contextId, groupMeta) {
   const userContent = question + contextBlock
   await saveHistory(contextId, 'user', userContent)
 
-  const response = await groq.chat.completions.create({
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
+  const response = await Promise.race([groq.chat.completions.create({
     model: 'openai/gpt-oss-120b',
     messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...history, { role: 'user', content: userContent }],
     max_tokens: 500,
     temperature: 0.7,
-  })
+  }), timeout])
 
   const raw = response.choices[0]?.message?.content || 'Não consegui processar.'
   // Limpar markdown residual

@@ -261,6 +261,22 @@ registerCommand('antiflood', { description: 'Activar/desactivar anti-flood', per
   await sock.sendMessage(groupId, { text: `🌊 Anti-flood: *${state === 'on' ? '✅ Activado' : '❌ Desactivado'}*` })
 })
 
+registerCommand('deletar', { description: 'Apagar mensagem citada', permission: 'admin' }, async ({ sock, msg, groupId }) => {
+  const quoted = msg.message?.extendedTextMessage?.contextInfo
+  if (!quoted?.stanzaId) return sock.sendMessage(groupId, { text: '❌ Responde a uma mensagem para a apagar.' })
+  const keyToDelete = {
+    remoteJid: groupId,
+    id: quoted.stanzaId,
+    participant: quoted.participant,
+    fromMe: false
+  }
+  try {
+    await sock.sendMessage(groupId, { delete: keyToDelete })
+  } catch {
+    await sock.sendMessage(groupId, { text: '❌ Não foi possível apagar. O bot precisa de ser admin.' })
+  }
+})
+
 registerCommand('limpar', { description: 'Apagar N mensagens do grupo', permission: 'admin' }, async ({ sock, groupId, args }) => {
   const n = parseInt(args[0])
   if (isNaN(n) || n < 1 || n > 50) return sock.sendMessage(groupId, { text: '❌ Uso: */limpar <1-50>*' })

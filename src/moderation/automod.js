@@ -6,7 +6,7 @@ import logger from '../core/logger.js'
 import config from '../../config/index.js'
 import supabase from '../core/database.js'
 
-export async function autoModerate(sock, msg) {
+export async function autoModerate(sock, msg, meta = null) {
   const groupId = msg.key.remoteJid
   if (!groupId?.endsWith('@g.us')) return false
 
@@ -16,8 +16,9 @@ export async function autoModerate(sock, msg) {
 
   if (senderNum === config.owner || senderNum === config.ownerLid) return false
 
-  let meta = null
-  try { meta = await sock.groupMetadata(groupId) } catch { return false }
+  if (!meta) {
+    try { meta = await sock.groupMetadata(groupId) } catch { return false }
+  }
 
   await ensureGroup(groupId, meta?.subject || groupId)
   const groupCfg = await getGroupConfig(groupId)
