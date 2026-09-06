@@ -2,6 +2,15 @@ import { registerCommand } from './index.js'
 import { addWarning, getWarnings, clearWarnings, getGroupConfig, ensureGroup, setMuteTimer, clearMuteTimer } from '../moderation/warnings.js'
 import { notifyAdmins, getName, getMentionText, resolveJid } from '../utils/notify.js'
 import supabase from '../core/database.js'
+import config from '../../config/index.js'
+
+function isSelfOrOwner(jid, sock) {
+  if (!jid) return false
+  const num = jid.replace('@s.whatsapp.net', '').replace('@lid', '').split(':')[0]
+  if (num === config.owner || num === config.ownerLid) return true
+  const botNum = sock?.user?.id?.split(':')[0]?.split('@')[0]
+  return botNum && num === botNum
+}
 
 registerCommand('warn', { description: 'Advertir membro', permission: 'admin' }, async ({ sock, msg, groupId, groupMeta }) => {
   const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid
@@ -67,6 +76,7 @@ registerCommand('kick', { description: 'Expulsar membro', permission: 'admin' },
   const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid
   if (!mentioned?.length) return sock.sendMessage(groupId, { text: '❌ Uso: */kick @membro*' })
   const target = mentioned[0]
+  if (isSelfOrOwner(target, sock)) return sock.sendMessage(groupId, { text: '🛡️ Não é possível expulsar o owner ou o bot.' })
   const targetName = getName(target, groupMeta)
   const mention = getMentionText(target, groupMeta)
   const groupName = groupMeta?.subject || groupId
@@ -79,6 +89,7 @@ registerCommand('ban', { description: 'Banir membro', permission: 'admin' }, asy
   const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid
   if (!mentioned?.length) return sock.sendMessage(groupId, { text: '❌ Uso: */ban @membro motivo*' })
   const target = mentioned[0]
+  if (isSelfOrOwner(target, sock)) return sock.sendMessage(groupId, { text: '🛡️ Não é possível banir o owner ou o bot.' })
   const targetName = getName(target, groupMeta)
   const mention = getMentionText(target, groupMeta)
   const groupName = groupMeta?.subject || groupId
@@ -157,6 +168,7 @@ registerCommand('mute', { description: 'Mutar membro', permission: 'admin' }, as
   const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid
   if (!mentioned?.length) return sock.sendMessage(groupId, { text: '❌ Uso: */mute @membro [tempo]* (ex: 10m, 1h, 2d)' })
   const target = mentioned[0]
+  if (isSelfOrOwner(target, sock)) return sock.sendMessage(groupId, { text: '🛡️ Não é possível mutar o owner ou o bot.' })
   const targetNum = target.replace('@s.whatsapp.net', '').replace('@lid', '').split(':')[0]
   const targetName = getName(target, groupMeta)
   const mention = getMentionText(target, groupMeta)

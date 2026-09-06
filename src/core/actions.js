@@ -13,6 +13,13 @@ function isOwner(jid) {
   return num === config.owner || num === config.ownerLid
 }
 
+function isSelf(jid, sock) {
+  if (!jid || !sock?.user?.id) return false
+  const botNum = sock.user.id.split(':')[0].split('@')[0]
+  const num = jid.replace('@s.whatsapp.net', '').replace('@lid', '').split(':')[0]
+  return num === botNum
+}
+
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 // ─── Histórico de comportamento por utilizador ───────────────────────────────
@@ -307,11 +314,11 @@ export async function executeAction(sock, action, groupId, groupMeta, callerJid,
   const { action: type, target, reason, duration, mute_duration, message, poll_question, poll_options } = action
   const muteDur = duration || mute_duration
 
-  // Owner é imune a qualquer acção — manual ou autónoma
-  if (target && isOwner(target)) {
-    logger.warn(`Acção bloqueada: tentativa de ${type} contra o owner (${target})`)
+  // Owner e o próprio bot são imunes a qualquer acção
+  if (target && (isOwner(target) || isSelf(target, sock))) {
+    logger.warn(`Acção bloqueada: tentativa de ${type} contra o owner/bot (${target})`)
     if (!isAutonomous && callerJid) {
-      await sock.sendMessage(groupId, { text: '🛡️ Não é possível executar acções contra o owner.' })
+      await sock.sendMessage(groupId, { text: '🛡️ Não é possível executar acções contra o owner ou o bot.' })
     }
     return
   }

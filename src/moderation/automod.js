@@ -16,6 +16,10 @@ export async function autoModerate(sock, msg, meta = null) {
 
   if (senderNum === config.owner || senderNum === config.ownerLid) return false
 
+  // Bot não se modera a si próprio
+  const botNum = sock?.user?.id?.split(':')[0]?.split('@')[0]
+  if (botNum && senderNum === botNum) return false
+
   if (!meta) {
     try { meta = await sock.groupMetadata(groupId) } catch { return false }
   }
