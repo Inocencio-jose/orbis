@@ -1,0 +1,779 @@
+\documentclass[12pt,a4paper]{article}
+
+% ── Pacotes ──────────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[portuguese]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{titletoc}
+\usepackage{tocloft}
+\usepackage{hyperref}
+\usepackage{fontawesome5}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{mdframed}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+
+% ── Cores ────────────────────────────────────────────────────────────────────
+\definecolor{orbisblue}{HTML}{4F46E5}
+\definecolor{orbisDark}{HTML}{1E1B4B}
+\definecolor{orbisLight}{HTML}{EEF2FF}
+\definecolor{orbisGreen}{HTML}{059669}
+\definecolor{orbisRed}{HTML}{DC2626}
+\definecolor{orbisYellow}{HTML}{D97706}
+\definecolor{orbisMid}{HTML}{6366F1}
+\definecolor{codebg}{HTML}{F1F5F9}
+\definecolor{tabhead}{HTML}{312E81}
+
+% ── Hiperligações ─────────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=orbisblue,
+  urlcolor=orbisMid,
+  pdftitle={Orbis — Manual do Utilizador},
+  pdfauthor={Orion Technologies},
+}
+
+% ── Cabeçalho / Rodapé ───────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{orbisblue}{\textbf{Orbis}}}
+\fancyhead[R]{\textcolor{gray}{\small Manual do Utilizador}}
+\fancyfoot[C]{\textcolor{gray}{\small \thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{orbisblue}\leaders\hrule height \headrulewidth\hfill}}
+
+% ── Títulos ───────────────────────────────────────────────────────────────────
+\titleformat{\section}
+  {\Large\bfseries\color{orbisDark}}
+  {\textcolor{orbisblue}{\thesection.}}{0.6em}{}
+  [\textcolor{orbisblue}{\titlerule[1.2pt]}]
+
+\titleformat{\subsection}
+  {\large\bfseries\color{orbisblue}}
+  {\thesubsection.}{0.5em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{orbisMid}}
+  {}{0em}{}
+
+% ── Caixas personalizadas ─────────────────────────────────────────────────────
+\tcbset{
+  cmdbox/.style={
+    enhanced, breakable,
+    colback=codebg, colframe=orbisblue,
+    fonttitle=\bfseries\color{white},
+    coltitle=white, attach boxed title to top left,
+    boxed title style={colback=orbisblue, rounded corners},
+    arc=4pt, boxrule=0.6pt,
+    left=6pt, right=6pt, top=6pt, bottom=6pt,
+  },
+  notebox/.style={
+    enhanced, breakable,
+    colback=orbisLight, colframe=orbisMid,
+    arc=4pt, boxrule=0.8pt,
+    left=8pt, right=8pt, top=6pt, bottom=6pt,
+  },
+  warnbox/.style={
+    enhanced,
+    colback=yellow!8, colframe=orbisYellow,
+    arc=4pt, boxrule=0.8pt,
+    left=8pt, right=8pt, top=6pt, bottom=6pt,
+  },
+  dangerbox/.style={
+    enhanced,
+    colback=red!6, colframe=orbisRed,
+    arc=4pt, boxrule=0.8pt,
+    left=8pt, right=8pt, top=6pt, bottom=6pt,
+  },
+}
+
+% ── Comando inline para comandos ──────────────────────────────────────────────
+\newcommand{\cmd}[1]{\texttt{\textcolor{orbisblue}{\textbf{#1}}}}
+\newcommand{\param}[1]{\texttt{\textcolor{orbisMid}{#1}}}
+
+% ── Tabela de comandos ────────────────────────────────────────────────────────
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ── CAPA ─────────────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \pagecolor{orbisDark}
+  \color{white}
+  \centering
+  \vspace*{3cm}
+
+  {\fontsize{60}{60}\selectfont \textcolor{orbisMid}{\faRobot}}
+
+  \vspace{1cm}
+  {\fontsize{48}{48}\selectfont \textbf{Orbis}}
+
+  \vspace{0.4cm}
+  {\large \textcolor{orbisMid}{Bot Inteligente de Gestão de Grupos WhatsApp}}
+
+  \vspace{2cm}
+  \textcolor{orbisMid}{\rule{10cm}{0.6pt}}
+  \vspace{0.6cm}
+
+  {\Large \textbf{Manual do Utilizador}}\\[0.4cm]
+  {\normalsize Versão 1.0}
+
+  \vfill
+
+  \textcolor{orbisMid}{\rule{10cm}{0.4pt}}\\[0.5cm]
+  {\small Desenvolvido por \textbf{Orion Technologies}}\\[0.2cm]
+  {\small \textcolor{gray}{\url{https://oriontechn.netlify.app}}}\\[0.6cm]
+  {\small \textcolor{gray}{\today}}
+\end{titlepage}
+\pagecolor{white}\color{black}
+
+% ── ÍNDICE ────────────────────────────────────────────────────────────────────
+\newpage
+\tableofcontents
+\newpage
+
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Introdução}
+% ═════════════════════════════════════════════════════════════════════════════
+
+O \textbf{Orbis} é um bot autónomo de gestão de grupos WhatsApp com inteligência artificial integrada. Modera grupos automaticamente, responde a comandos, conversa com os membros e notifica administradores — tudo sem intervenção manual.
+
+\begin{tcolorbox}[notebox]
+\textbf{\textcolor{orbisblue}{\faInfoCircle\ O que o Orbis faz por ti:}}
+\begin{itemize}[leftmargin=1.2em, itemsep=2pt]
+  \item Detecta e remove spam, links proibidos e flood automaticamente
+  \item Aplica punições progressivas: aviso $\to$ mute $\to$ expulsão $\to$ ban
+  \item Responde a perguntas e conversa com os membros via IA (Groq)
+  \item Executa comandos de moderação por linguagem natural (admins)
+  \item Envia resumos diários da conversa do grupo
+  \item Gere agendamentos recorrentes de mensagens
+  \item Mantém um sistema de reputação e níveis para os membros
+\end{itemize}
+\end{tcolorbox}
+
+\subsection{Tecnologias}
+
+\begin{center}
+\begin{tabular}{L{3.5cm} L{9cm}}
+\toprule
+\rowcolor{tabhead}\textcolor{white}{\textbf{Tecnologia}} & \textcolor{white}{\textbf{Função}} \\
+\midrule
+Baileys v7 & Conexão com o WhatsApp \\
+\rowcolor{orbisLight} Supabase (PostgreSQL) & Base de dados persistente \\
+Groq & Motor de Inteligência Artificial \\
+\rowcolor{orbisLight} Express & API REST interna \\
+Node.js v18+ & Ambiente de execução \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Níveis de Acesso}
+% ═════════════════════════════════════════════════════════════════════════════
+
+O Orbis distingue três perfis de utilizador dentro de cada grupo:
+
+\begin{center}
+\begin{tabular}{L{2.8cm} C{1.8cm} L{8cm}}
+\toprule
+\rowcolor{tabhead}\textcolor{white}{\textbf{Perfil}} & \textcolor{white}{\textbf{Símbolo}} & \textcolor{white}{\textbf{Capacidades}} \\
+\midrule
+\textbf{Membro} & \faUser & Comandos gerais, sondagens, denúncias, reputação, resumos \\
+\rowcolor{orbisLight}\textbf{Administrador} & \faCrown & Tudo do membro + moderação, configuração, agendamentos, anúncios \\
+\textbf{Owner} & \faShieldAlt & Acesso total; imune a todas as acções de moderação \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{tcolorbox}[warnbox]
+\textbf{\textcolor{orbisYellow}{\faExclamationTriangle\ Importante:}} Os administradores do grupo no WhatsApp são automaticamente reconhecidos como \textbf{Administradores} pelo Orbis. Não é necessária configuração adicional.
+\end{tcolorbox}
+
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Comandos Gerais}
+\label{sec:geral}
+% ═════════════════════════════════════════════════════════════════════════════
+
+Estes comandos estão disponíveis para \textbf{todos os membros} do grupo.
+
+\subsection{Informação e Navegação}
+
+\begin{tcolorbox}[cmdbox, title={\faList\ /menu}]
+Mostra a lista resumida de todos os comandos disponíveis.\\
+\textbf{Uso:} \cmd{/menu}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faInfoCircle\ /info}]
+Mostra informações do grupo: nome, número de membros, admins e data de criação.\\
+\textbf{Uso:} \cmd{/info}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faCrown\ /admins}]
+Lista todos os administradores do grupo com menção.\\
+\textbf{Uso:} \cmd{/admins}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faScroll\ /regras}]
+Mostra as regras do grupo. Se não foram definidas, apresenta as regras padrão.\\
+\textbf{Uso:} \cmd{/regras}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faChartBar\ /stats}]
+Estatísticas do grupo: total de membros, admins e membros regulares.\\
+\textbf{Uso:} \cmd{/stats}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faBook\ /instrucoes}]
+Instruções detalhadas organizadas por secção.\\
+\textbf{Uso:} \cmd{/instrucoes} \param{[secção]}\\
+\textbf{Secções disponíveis:} \param{geral} \textbar\ \param{moderacao} \textbar\ \param{config} \textbar\ \param{ia} \textbar\ \param{extra}\\
+\textbf{Exemplo:} \cmd{/instrucoes moderacao}
+\end{tcolorbox}
+
+\subsection{Interacção e Participação}
+
+\begin{tcolorbox}[cmdbox, title={\faPoll\ /sondagem}]
+Cria uma enquete nativa do WhatsApp com 2 a 12 opções.\\
+\textbf{Uso:} \cmd{/sondagem} \param{<pergunta> | opção1 | opção2 ...}\\
+\textbf{Exemplo:} \cmd{/sondagem Melhor dia para reunião? | Segunda | Quarta | Sexta}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faFlag\ /denunciar}]
+Denuncia uma mensagem aos administradores. Deves \textbf{responder} à mensagem que queres denunciar antes de usar o comando.\\
+\textbf{Uso:} Responde a uma mensagem $\to$ \cmd{/denunciar}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faStar\ /reputacao}]
+Mostra o nível e pontos de reputação de um membro (ou os teus, se não mencionares ninguém).\\
+\textbf{Uso:} \cmd{/reputacao} \param{[@membro]}\\
+\textbf{Exemplo:} \cmd{/reputacao @João}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faTrophy\ /top}]
+Mostra o top 10 de membros com mais reputação no grupo.\\
+\textbf{Uso:} \cmd{/top}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faAlignLeft\ /resumo}]
+A Orbis resume as últimas N mensagens da conversa usando IA.\\
+\textbf{Uso:} \cmd{/resumo} \param{[N]}\\
+\textbf{Padrão:} 20 mensagens. \textbf{Exemplo:} \cmd{/resumo 50}
+\end{tcolorbox}
+
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Comandos de Moderação}
+\label{sec:moderacao}
+% ═════════════════════════════════════════════════════════════════════════════
+
+Estes comandos são exclusivos para \textbf{administradores} do grupo.
+
+\subsection{Avisos}
+
+\begin{tcolorbox}[cmdbox, title={\faExclamationTriangle\ /warn}]
+Dá um aviso a um membro. Ao atingir o limite configurado, o membro é expulso automaticamente.\\
+\textbf{Uso:} \cmd{/warn} \param{@membro [motivo]}\\
+\textbf{Exemplo:} \cmd{/warn @Pedro spam repetido}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faEyeSlash\ /warnings}]
+Mostra o número de avisos actuais de um membro.\\
+\textbf{Uso:} \cmd{/warnings} \param{@membro}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faBroom\ /clearwarn}]
+Apaga todos os avisos de um membro, dando-lhe uma nova oportunidade.\\
+\textbf{Uso:} \cmd{/clearwarn} \param{@membro}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faHistory\ /historico}]
+Mostra o histórico completo de um membro: avisos, bans e denúncias recebidas.\\
+\textbf{Uso:} \cmd{/historico} \param{@membro}
+\end{tcolorbox}
+
+\subsection{Expulsão e Ban}
+
+\begin{tcolorbox}[cmdbox, title={\faUserMinus\ /kick}]
+Expulsa o membro do grupo imediatamente. O membro pode ser readmitido manualmente.\\
+\textbf{Uso:} \cmd{/kick} \param{@membro}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faHammer\ /ban}]
+Bane o membro: expulsa-o e regista-o na lista de banidos, impedindo readmissão automática.\\
+\textbf{Uso:} \cmd{/ban} \param{@membro [motivo]}\\
+\textbf{Exemplo:} \cmd{/ban @Rui burla e fraude}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faList\ /banidos}]
+Lista os últimos 20 membros banidos do grupo com o motivo do ban.\\
+\textbf{Uso:} \cmd{/banidos}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faUserPlus\ /adicionar}]
+Readmite um membro banido pelo número de telefone e remove-o da lista de banidos.\\
+\textbf{Uso:} \cmd{/adicionar} \param{<número>}\\
+\textbf{Exemplo:} \cmd{/adicionar 244912345678}
+\end{tcolorbox}
+
+\subsection{Mute e Controlo de Voz}
+
+\begin{tcolorbox}[cmdbox, title={\faVolumeMute\ /mute}]
+Muta um membro (remove permissão de envio). Com tempo definido, o mute expira automaticamente.\\
+\textbf{Uso:} \cmd{/mute} \param{@membro [tempo]}\\
+\textbf{Formatos de tempo:} \param{10m} (minutos), \param{2h} (horas), \param{1d} (dias)\\
+\textbf{Exemplo:} \cmd{/mute @Ana 30m}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faVolumeUp\ /unmute}]
+Remove o mute de um membro antes do tempo expirar.\\
+\textbf{Uso:} \cmd{/unmute} \param{@membro}
+\end{tcolorbox}
+
+\subsection{Gestão de Administradores}
+
+\begin{tcolorbox}[cmdbox, title={\faCrown\ /promover \ e \ /despromover}]
+Promove ou despromove um membro a administrador do grupo.\\
+\textbf{Uso:} \cmd{/promover} \param{@membro} \quad \cmd{/despromover} \param{@membro}
+\end{tcolorbox}
+
+\subsection{Controlo do Grupo}
+
+\begin{tcolorbox}[cmdbox, title={\faLock\ /trancar \ e \ \faLockOpen\ /abrir}]
+\textbf{/trancar} — Só administradores podem enviar mensagens.\\
+\textbf{/abrir} — Todos os membros podem enviar mensagens.\\
+\textbf{Uso:} \cmd{/trancar} \quad \cmd{/abrir}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faBullhorn\ /anunciar}]
+Envia uma mensagem formatada como anúncio oficial da administração.\\
+\textbf{Uso:} \cmd{/anunciar} \param{<texto>}\\
+\textbf{Exemplo:} \cmd{/anunciar Reunião amanhã às 18h. Presença obrigatória.}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faTrash\ /deletar}]
+Apaga uma mensagem específica. Deves \textbf{responder} à mensagem que queres apagar.\\
+\textbf{Uso:} Responde a uma mensagem $\to$ \cmd{/deletar}\\
+\textit{Nota: O bot precisa de ser administrador do grupo para apagar mensagens de outros.}
+\end{tcolorbox}
+
+\subsection{Agendamentos}
+
+\begin{tcolorbox}[cmdbox, title={\faClock\ /agendamento}]
+Agenda uma mensagem única para ser enviada após um determinado tempo.\\
+\textbf{Uso:} \cmd{/agendamento} \param{<tempo> <mensagem>}\\
+\textbf{Exemplo:} \cmd{/agendamento 1h Reunião em breve!}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faClock\ /agendarcorrente}]
+Cria um agendamento recorrente — diário ou apenas dias úteis.\\
+\textbf{Uso:} \cmd{/agendarcorrente} \param{<DAILY|MON-FRI> <HH:MM> <mensagem>}\\
+\textbf{Exemplos:}
+\begin{itemize}[leftmargin=1.2em, itemsep=1pt]
+  \item \cmd{/agendarcorrente DAILY 09:00 Bom dia a todos!}
+  \item \cmd{/agendarcorrente MON-FRI 08:30 Reunião em 30 minutos!}
+\end{itemize}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faListAlt\ /agendamentos}]
+Lista todos os agendamentos recorrentes activos no grupo.\\
+\textbf{Uso:} \cmd{/agendamentos}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faTimes\ /cancelaragendamento}]
+Cancela um agendamento recorrente pelo seu ID (visível em \cmd{/agendamentos}).\\
+\textbf{Uso:} \cmd{/cancelaragendamento} \param{<id>}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faExclamationCircle\ /denuncias}]
+Mostra as últimas denúncias registadas no grupo.\\
+\textbf{Uso:} \cmd{/denuncias}
+\end{tcolorbox}
+
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Configuração do Grupo}
+\label{sec:config}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\subsection{Ver e Alterar Configurações}
+
+\begin{tcolorbox}[cmdbox, title={\faCog\ /config}]
+Sem argumentos, mostra todas as configurações actuais do grupo.\\
+Com argumentos, altera uma configuração específica.\\
+\textbf{Uso:} \cmd{/config} \param{[opção] [valor]}
+\end{tcolorbox}
+
+\subsubsection{Opções disponíveis do /config}
+
+\begin{center}
+\begin{longtable}{L{4.5cm} L{4cm} L{5cm}}
+\toprule
+\rowcolor{tabhead}\textcolor{white}{\textbf{Comando}} & \textcolor{white}{\textbf{Valores}} & \textcolor{white}{\textbf{Descrição}} \\
+\midrule
+\endhead
+\cmd{/config spam on|off} & \param{on} / \param{off} & Activa/desactiva anti-spam \\
+\rowcolor{orbisLight}\cmd{/config link on|off} & \param{on} / \param{off} & Activa/desactiva anti-link \\
+\cmd{/config flood on|off} & \param{on} / \param{off} & Activa/desactiva anti-flood \\
+\rowcolor{orbisLight}\cmd{/config welcome on|off} & \param{on} / \param{off} & Activa/desactiva boas-vindas \\
+\cmd{/config warnings N} & número inteiro & Define o limite de avisos antes da expulsão \\
+\rowcolor{orbisLight}\cmd{/config reputacao on|off} & \param{on} / \param{off} & Activa/desactiva sistema de reputação \\
+\cmd{/config silencio H1 H2} & horas (0--23) & Modo silêncio das H1h às H2h \\
+\rowcolor{orbisLight}\cmd{/config whitelist add D} & domínio & Adiciona domínio à whitelist de links \\
+\cmd{/config whitelist remove D} & domínio & Remove domínio da whitelist \\
+\rowcolor{orbisLight}\cmd{/config whitelist clear} & --- & Limpa toda a whitelist \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\subsection{Personalização}
+
+\begin{tcolorbox}[cmdbox, title={\faEdit\ /setregras}]
+Define as regras personalizadas do grupo (substitui as regras padrão).\\
+\textbf{Uso:} \cmd{/setregras} \param{<texto das regras>}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faHandshake\ /setwelcome}]
+Define a mensagem de boas-vindas para novos membros.\\
+\textbf{Variáveis disponíveis:} \param{\{nome\}} (nome do membro) e \param{\{grupo\}} (nome do grupo)\\
+\textbf{Uso:} \cmd{/setwelcome} \param{<mensagem>}\\
+\textbf{Exemplo:} \cmd{/setwelcome Olá \{nome\}, bem-vindo(a) ao \{grupo\}! Lê as /regras.}
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faBell\ /setadmingroup}]
+Configura um grupo dedicado para receber notificações de moderação (bans, kicks, avisos, denúncias).\\
+\textbf{Uso:} No grupo de admins, envia \cmd{/setadmingroup} \param{<ID do grupo principal>}\\
+\textbf{Exemplo:} \cmd{/setadmingroup 120363427347409993@g.us}\\[4pt]
+\textit{O ID do grupo aparece no terminal quando envias uma mensagem nesse grupo.}
+\end{tcolorbox}
+
+\subsection{Atalhos de Moderação}
+
+\begin{center}
+\begin{tabular}{L{5cm} L{8cm}}
+\toprule
+\rowcolor{tabhead}\textcolor{white}{\textbf{Comando}} & \textcolor{white}{\textbf{Equivalente a}} \\
+\midrule
+\cmd{/antilink on|off} & \cmd{/config link on|off} \\
+\rowcolor{orbisLight}\cmd{/antispam on|off} & \cmd{/config spam on|off} \\
+\cmd{/antiflood on|off} & \cmd{/config flood on|off} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Inteligência Artificial}
+\label{sec:ia}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\subsection{Como Activar a IA}
+
+A Orbis responde automaticamente quando:
+
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+  \item Mencionas \textbf{@Orbis} na mensagem
+  \item Escreves a palavra \textbf{``orbis''} no texto
+  \item Respondes directamente a uma mensagem da Orbis
+  \item Envias uma mensagem \textbf{privada} directamente ao bot
+\end{itemize}
+
+\begin{tcolorbox}[notebox]
+\textbf{\textcolor{orbisblue}{\faLightbulb\ Dica:}} A Orbis lê o contexto recente da conversa e adapta o tom. Em grupos agitados responde de forma mais directa; em grupos calmos é mais elaborada.
+\end{tcolorbox}
+
+\subsection{Conversa Natural}
+
+Qualquer membro pode conversar livremente com a Orbis:
+
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item Fazer perguntas gerais ou sobre o grupo
+  \item Pedir opiniões ou sugestões
+  \item Pedir para mencionar membros específicos ou todos
+\end{itemize}
+
+\textbf{Exemplos:}
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textit{``Orbis, qual é o tema da reunião de hoje?''}
+  \item \textit{``@Orbis chama o João para ver isto''}
+  \item \textit{``Orbis chama toda a gente''}
+\end{itemize}
+
+\subsection{Comandos por Linguagem Natural (Admins)}
+
+Os administradores podem dar ordens à Orbis em linguagem natural, sem usar comandos com \texttt{/}:
+
+\begin{center}
+\begin{tabular}{L{6.5cm} L{6.5cm}}
+\toprule
+\rowcolor{tabhead}\textcolor{white}{\textbf{O que dizes}} & \textcolor{white}{\textbf{O que a Orbis faz}} \\
+\midrule
+\textit{``Orbis expulsa o Pedro''} & Executa \cmd{/kick @Pedro} \\
+\rowcolor{orbisLight}\textit{``Orbis bane o Rui por ameaças''} & Executa \cmd{/ban @Rui} \\
+\textit{``Orbis muta o Carlos por 30 minutos''} & Executa \cmd{/mute @Carlos 30m} \\
+\rowcolor{orbisLight}\textit{``Orbis avisa o João por spam''} & Executa \cmd{/warn @João} \\
+\textit{``Orbis tranca o grupo''} & Executa \cmd{/trancar} \\
+\rowcolor{orbisLight}\textit{``Orbis abre o grupo''} & Executa \cmd{/abrir} \\
+\textit{``Orbis promove o Miguel''} & Executa \cmd{/promover @Miguel} \\
+\rowcolor{orbisLight}\textit{``Orbis anuncia que a reunião é às 18h''} & Envia anúncio formatado \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{tcolorbox}[warnbox]
+\textbf{\textcolor{orbisYellow}{\faExclamationTriangle\ Nota:}} A Orbis só executa acções por linguagem natural se tiver \textbf{alta confiança} na interpretação. Em caso de ambiguidade, não age e pede confirmação.
+\end{tcolorbox}
+
+\subsection{Moderação Autónoma}
+
+A Orbis monitoriza todas as mensagens e age automaticamente em caso de violações, \textbf{sem necessidade de comandos}:
+
+\begin{center}
+\begin{tabular}{L{3.5cm} C{2.5cm} L{6.5cm}}
+\toprule
+\rowcolor{tabhead}\textcolor{white}{\textbf{Tipo de Violação}} & \textcolor{white}{\textbf{Severidade}} & \textcolor{white}{\textbf{Acção}} \\
+\midrule
+Spam, flood, links & Baixa & Apaga mensagem + aviso \\
+\rowcolor{orbisLight}Insultos, desrespeito & Média & Aviso ou mute curto \\
+Insultos graves, assédio & Alta & Mute ou expulsão \\
+\rowcolor{orbisLight}Ameaças, discurso de ódio & Crítica & Expulsão ou ban imediato \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Escalada progressiva por reincidência:}
+\[
+\text{Aviso} \;\longrightarrow\; \text{Mute} \;\longrightarrow\; \text{Expulsão} \;\longrightarrow\; \text{Ban}
+\]
+
+\begin{tcolorbox}[notebox]
+\textbf{Administradores nunca são moderados automaticamente.}
+\end{tcolorbox}
+
+\subsection{Modo Silêncio}
+
+Quando o modo silêncio está activo, a IA \textbf{não responde a membros} fora do horário configurado. Os administradores continuam a ter acesso em qualquer hora.
+
+\textbf{Configurar:} \cmd{/config silencio} \param{<hora\_início> <hora\_fim>}\\
+\textbf{Exemplo:} \cmd{/config silencio 22 6} — silêncio das 22h às 6h
+
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Funcionalidades Extra}
+\label{sec:extra}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\subsection{Sistema de Reputação e Níveis}
+
+O sistema de reputação recompensa membros activos e penaliza infractores.
+
+\textbf{Como funciona:}
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item Cada mensagem enviada ganha \textbf{+2 pontos}
+  \item Cada infracção detectada perde \textbf{-20 pontos}
+  \item Ao subir de nível, a Orbis anuncia no grupo
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{C{1.5cm} L{3cm} C{3cm}}
+\toprule
+\rowcolor{tabhead}\textcolor{white}{\textbf{Nível}} & \textcolor{white}{\textbf{Nome}} & \textcolor{white}{\textbf{Pontos necessários}} \\
+\midrule
+1 & Novato & 0 \\
+\rowcolor{orbisLight}2 & Membro & 100 \\
+3 & Activo & 300 \\
+\rowcolor{orbisLight}4 & Veterano & 700 \\
+5 & Elite & 1500 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Activar:} \cmd{/config reputacao on}\\
+\textbf{Ver reputação:} \cmd{/reputacao} \param{[@membro]}\\
+\textbf{Ver ranking:} \cmd{/top}
+
+\subsection{Resumo Diário Automático}
+
+A Orbis pode enviar automaticamente um resumo da conversa do dia, gerado por IA.
+
+\begin{tcolorbox}[cmdbox, title={\faCalendarCheck\ /resumodiario}]
+Activa ou desactiva o resumo diário automático, com hora configurável.\\
+\textbf{Uso:} \cmd{/resumodiario} \param{on|off [hora]}\\
+\textbf{Exemplo:} \cmd{/resumodiario on 22} — envia resumo todos os dias às 22h
+\end{tcolorbox}
+
+\begin{tcolorbox}[cmdbox, title={\faPaperPlane\ /resumoagora}]
+Envia o resumo do dia imediatamente, sem esperar pelo horário agendado.\\
+\textbf{Uso:} \cmd{/resumoagora}
+\end{tcolorbox}
+
+\subsection{Agendamentos Recorrentes}
+
+Permite programar mensagens automáticas que se repetem diariamente ou apenas em dias úteis.
+
+\begin{center}
+\begin{tabular}{L{3cm} L{10cm}}
+\toprule
+\rowcolor{tabhead}\textcolor{white}{\textbf{Tipo}} & \textcolor{white}{\textbf{Descrição}} \\
+\midrule
+\param{DAILY} & Todos os dias à hora definida \\
+\rowcolor{orbisLight}\param{MON-FRI} & Apenas segunda a sexta à hora definida \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Exemplos:}
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \cmd{/agendarcorrente DAILY 09:00 Bom dia a todos! ☀️}
+  \item \cmd{/agendarcorrente MON-FRI 17:30 Fim do expediente. Bom descanso!}
+\end{itemize}
+
+\subsection{Whitelist de Links}
+
+Quando o anti-link está activo, podes permitir links de domínios específicos (ex: YouTube, Google Drive).
+
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Adicionar:} \cmd{/config whitelist add youtube.com}
+  \item \textbf{Remover:} \cmd{/config whitelist remove youtube.com}
+  \item \textbf{Limpar tudo:} \cmd{/config whitelist clear}
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Auto-Moderação — Referência Rápida}
+\label{sec:automod}
+% ═════════════════════════════════════════════════════════════════════════════
+
+A tabela seguinte resume o comportamento automático do Orbis sem intervenção de admins:
+
+\begin{center}
+\begin{longtable}{L{3.5cm} L{3.5cm} L{6cm}}
+\toprule
+\rowcolor{tabhead}\textcolor{white}{\textbf{Detecção}} & \textcolor{white}{\textbf{Condição}} & \textcolor{white}{\textbf{Acção}} \\
+\midrule
+\endhead
+Link proibido & Anti-link activo & Apaga + aviso \\
+\rowcolor{orbisLight}Spam de texto & Anti-spam activo & Apaga + aviso \\
+Flood (muitas msgs) & Anti-flood activo & Apaga + aviso \\
+\rowcolor{orbisLight}Avisos acumulados & Limite atingido & Expulsão automática \\
+Insultos leves & IA activa & Aviso \\
+\rowcolor{orbisLight}Insultos graves & IA activa & Mute ou expulsão \\
+Ameaças / ódio & IA activa & Ban imediato \\
+\rowcolor{orbisLight}Reincidência (2+ strikes) & IA activa & Escalada da punição \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\begin{tcolorbox}[dangerbox]
+\textbf{\textcolor{orbisRed}{\faBan\ Acções irreversíveis:}} \cmd{/ban} e a moderação autónoma por conteúdo crítico resultam em ban permanente. Para reverter, usa \cmd{/adicionar} com o número do membro.
+\end{tcolorbox}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Referência Rápida de Todos os Comandos}
+\label{sec:referencia}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\subsection{Comandos para Todos os Membros}
+
+\begin{center}
+\begin{tabular}{L{5cm} L{8cm}}
+\toprule
+\rowcolor{tabhead}\textcolor{white}{\textbf{Comando}} & \textcolor{white}{\textbf{Descrição}} \\
+\midrule
+\cmd{/menu} & Lista de todos os comandos \\
+\rowcolor{orbisLight}\cmd{/info} & Informações do grupo \\
+\cmd{/admins} & Lista de administradores \\
+\rowcolor{orbisLight}\cmd{/regras} & Regras do grupo \\
+\cmd{/stats} & Estatísticas do grupo \\
+\rowcolor{orbisLight}\cmd{/sondagem pergunta | op1 | op2} & Criar enquete \\
+\cmd{/denunciar} & Denunciar mensagem (responde a ela) \\
+\rowcolor{orbisLight}\cmd{/reputacao [@membro]} & Ver reputação \\
+\cmd{/top} & Top 10 membros \\
+\rowcolor{orbisLight}\cmd{/resumo [N]} & Resumir conversa com IA \\
+\cmd{/instrucoes [secção]} & Instruções detalhadas \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Comandos para Administradores}
+
+\begin{center}
+\begin{longtable}{L{5.5cm} L{7.5cm}}
+\toprule
+\rowcolor{tabhead}\textcolor{white}{\textbf{Comando}} & \textcolor{white}{\textbf{Descrição}} \\
+\midrule
+\endhead
+\cmd{/warn @membro [motivo]} & Advertir membro \\
+\rowcolor{orbisLight}\cmd{/warnings @membro} & Ver avisos \\
+\cmd{/clearwarn @membro} & Limpar avisos \\
+\rowcolor{orbisLight}\cmd{/historico @membro} & Histórico de infrações \\
+\cmd{/kick @membro} & Expulsar \\
+\rowcolor{orbisLight}\cmd{/ban @membro [motivo]} & Banir \\
+\cmd{/banidos} & Lista de banidos \\
+\rowcolor{orbisLight}\cmd{/adicionar <número>} & Readmitir banido \\
+\cmd{/mute @membro [tempo]} & Mutar \\
+\rowcolor{orbisLight}\cmd{/unmute @membro} & Desmutar \\
+\cmd{/promover @membro} & Promover a admin \\
+\rowcolor{orbisLight}\cmd{/despromover @membro} & Despromover \\
+\cmd{/trancar} & Só admins enviam \\
+\rowcolor{orbisLight}\cmd{/abrir} & Todos podem enviar \\
+\cmd{/anunciar <texto>} & Anúncio formatado \\
+\rowcolor{orbisLight}\cmd{/deletar} & Apagar mensagem citada \\
+\cmd{/agendamento <tempo> <msg>} & Agendar mensagem única \\
+\rowcolor{orbisLight}\cmd{/agendarcorrente <tipo> <HH:MM> <msg>} & Agendamento recorrente \\
+\cmd{/agendamentos} & Ver agendamentos activos \\
+\rowcolor{orbisLight}\cmd{/cancelaragendamento <id>} & Cancelar agendamento \\
+\cmd{/denuncias} & Ver denúncias \\
+\rowcolor{orbisLight}\cmd{/membros} & Lista de membros \\
+\cmd{/resumodiario on|off [hora]} & Resumo diário automático \\
+\rowcolor{orbisLight}\cmd{/resumoagora} & Enviar resumo agora \\
+\cmd{/config [opção] [valor]} & Ver/alterar configurações \\
+\rowcolor{orbisLight}\cmd{/antilink on|off} & Anti-link \\
+\cmd{/antispam on|off} & Anti-spam \\
+\rowcolor{orbisLight}\cmd{/antiflood on|off} & Anti-flood \\
+\cmd{/setregras <texto>} & Definir regras \\
+\rowcolor{orbisLight}\cmd{/setwelcome <msg>} & Mensagem de boas-vindas \\
+\cmd{/setadmingroup <ID>} & Grupo de notificações \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Boas Práticas}
+\label{sec:boas-praticas}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\begin{enumerate}[leftmargin=1.5em, itemsep=6pt]
+  \item \textbf{Configura o grupo de admins} com \cmd{/setadmingroup} para receberes notificações de moderação em tempo real.
+  \item \textbf{Define as regras} com \cmd{/setregras} para que os membros saibam o que é permitido.
+  \item \textbf{Activa o anti-link} e adiciona à whitelist apenas os domínios que queres permitir.
+  \item \textbf{Usa o modo silêncio} para evitar que a IA responda a horas inapropriadas.
+  \item \textbf{Activa a reputação} para incentivar participação saudável e identificar membros problemáticos.
+  \item \textbf{Usa \cmd{/historico}} antes de banir — verifica o historial do membro para tomar decisões informadas.
+  \item \textbf{Não uses \cmd{/ban} levianamente} — é permanente. Prefere \cmd{/warn} ou \cmd{/kick} para infracções menores.
+  \item \textbf{O bot precisa de ser administrador} do grupo para executar acções de moderação (kick, ban, mute, trancar).
+\end{enumerate}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% RODAPÉ FINAL
+% ═════════════════════════════════════════════════════════════════════════════
+\vfill
+\begin{center}
+\textcolor{orbisMid}{\rule{12cm}{0.6pt}}\\[0.5cm]
+{\small Desenvolvido por \textbf{Orion Technologies} \textcolor{gray}{·} \url{https://oriontechn.netlify.app}}\\[0.2cm]
+{\small \textcolor{gray}{Orbis v1.0 — Manual do Utilizador — \today}}
+\end{center}
+
+\end{document}
